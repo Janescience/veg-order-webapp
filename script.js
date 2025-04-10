@@ -9,14 +9,14 @@ const vegetables = [];
 
 function renderForm() {
   const container = document.getElementById("form-container");
-  container.innerHTML = vegetables.map(veg => \`
+  container.innerHTML = vegetables.map(veg => `
     <div class="veg-item">
-      <label>\${veg.name} (\${veg.price} บาท/กก.)</label>
-      <input type="number" min="0" step="0.1" data-name="\${veg.name}" placeholder="ใส่จำนวนกก." />
+      <label>${veg.name} (${veg.price} บาท/กก.)</label>
+      <input type="number" min="0" step="0.1" data-name="${veg.name}" placeholder="ใส่จำนวนกก." />
     </div>
-  \`).join('') + \`
+  `).join('') + `
     <button onclick="confirmOrder()">ตรวจสอบคำสั่งซื้อ</button>
-  \`;
+  `;
 }
 
 function confirmOrder() {
@@ -42,13 +42,13 @@ function confirmOrder() {
 
 function showConfirmPage(summary) {
   const container = document.getElementById("form-container");
-  const list = summary.map(item => \`<li>\${item.name} - \${item.amount} กก.</li>\`).join('');
-  container.innerHTML = \`
+  const list = summary.map(item => `<li>${item.name} - ${item.amount} กก.</li>`).join('');
+  container.innerHTML = `
     <h3>🔍 ตรวจสอบคำสั่งซื้อ</h3>
-    <ul>\${list}</ul>
+    <ul>${list}</ul>
     <button onclick="renderForm()">❌ ย้อนกลับ</button>
-    <button onclick='submitOrder(\${JSON.stringify(JSON.stringify(summary))})'>✅ ยืนยันการสั่งซื้อ</button>
-  \`;
+    <button onclick='submitOrder(${JSON.stringify(JSON.stringify(summary))})'>✅ ยืนยันการสั่งซื้อ</button>
+  `;
 }
 
 function submitOrder(summaryJson) {
