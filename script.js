@@ -13,6 +13,8 @@ async function fetchVegetables() {
   farmSchedule = data.schedule;
 
   renderForm();
+  setInterval(updateRealtimeClock, 1000);
+  updateRealtimeClock(); 
 }
 
 
@@ -25,6 +27,7 @@ function renderForm() {
   const container = document.getElementById("form-container");
   container.innerHTML = `
     <div class="mb-4">
+      <div id="realtime-clock" class="text-gray-600 mb-4 text-right">🕒 ขณะนี้: ...</div>
       <label class="block mb-1 font-medium text-lg text-gray-700 flex items-center gap-2">
         🧺 เลือกผักที่ต้องการ 🥬
       </label>
@@ -75,7 +78,7 @@ function renderForm() {
       <button 
         id="check-order-btn"
         onclick="confirmOrder()" 
-        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow opacity-50 cursor-not-allowed"
+        class="text-sm bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow opacity-50 cursor-not-allowed"
         disabled
       >
         ตรวจสอบคำสั่งซื้อ
@@ -84,6 +87,10 @@ function renderForm() {
   `;
 
   const closedDaysHtml = `
+  <div class="text-xs mt-2 text-red-400 font-medium mb-1">
+    ⏰ สั่งก่อน 08:30 น. เพื่อจัดส่งภายในวันนี้  
+    หากเลยเวลานี้ จะจัดส่งในวันถัดไปนะคะ
+  </div>
   <div class="mt-6 text-sm text-gray-600">
     <div class="bg-red-50 border border-red-200 rounded-lg p-3">
       <div class="font-medium text-red-700 mb-1">📌 วันหยุดฟาร์ม</div>
@@ -99,14 +106,24 @@ function renderForm() {
 container.innerHTML += closedDaysHtml;
 
   // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
-  const today = new Date().toISOString().split("T")[0];
-  const dateInput = document.getElementById("delivery-date");
-  dateInput.value = today;
-  dateInput.min = today;
+  const now = new Date();
+  const cutoffHour = 8;
+  const cutoffMinute = 30;
+
+  // ถ้าเลย 08:30 แล้ว → เพิ่ม 1 วัน
+  if (now.getHours() > cutoffHour || (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)) {
+    now.setDate(now.getDate() + 1);
+  }
+
+  const deliveryDateStr = now.toISOString().split("T")[0];
+  const deliveryInput = document.getElementById("delivery-date");
+
+  deliveryInput.value = deliveryDateStr;
+  deliveryInput.min = deliveryDateStr;
   updateDeliveryDate();
 
   // (Optional) เปิด calendar เมื่อคลิก
-  dateInput.addEventListener("click", () => dateInput.showPicker?.());
+  // dateInput.addEventListener("click", () => dateInput.showPicker?.());
 }
 
 function updateItemTotal(input) {
@@ -405,8 +422,20 @@ function checkEnableConfirmButton() {
   }
 }
 
+function updateRealtimeClock() {
+  const now = new Date();
+  const days = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+  const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
+  const day = days[now.getDay()];
+  const date = now.getDate();
+  const month = months[now.getMonth()];
+  const year = now.getFullYear() + 543;
+  const time = now.toLocaleTimeString('th-TH', { hour12: false });
 
-
+  const fullText = `🕒 ขณะนี้: วัน${day}ที่ ${date} ${month} พ.ศ. ${year}\n เวลา ${time}`;
+  document.getElementById("realtime-clock").innerText = fullText;
+}
 
 fetchVegetables();
