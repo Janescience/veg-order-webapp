@@ -1,2 +1,2 @@
 // 👇 เปลี่ยนลิงก์ด้านล่างให้เป็นของคุณ
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxmLUTaYLHkcvGPgDZXlQPGOv8ZgRVXUxh35ez3k9T_w2F_LeSrVU6Td-L-4vxHQ42Z/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkLd_kwdxBnc2hQw7c0Hr5-sGatk8Zn-RMrpUvcXADqW5ksuKAgrEleRS2opwxgQae/exec";
