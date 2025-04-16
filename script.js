@@ -277,6 +277,9 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     userId: userId,
     order: summary
   };
+
+  console.log("submitOrder payload : ",payload)
+
   showLoading("กำลังส่งคำสั่งซื้อ...");
   fetch(GOOGLE_SCRIPT_URL, {
     method: 'POST',
