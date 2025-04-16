@@ -1,5 +1,20 @@
 const vegetables = [];
 let farmSchedule = {};
+let customerName = "ลูกค้าจากลิงก์";
+let userId = null;
+
+function initCustomerName() {
+  const params = new URLSearchParams(window.location.search);
+  const nameFromUrl = params.get("customer");
+  if (nameFromUrl) {
+    customerName = decodeURIComponent(nameFromUrl);
+  }
+  const userIdUrl = params.get("userId");
+  if (userIdUrl) {
+    userId = userIdUrl;
+  }
+}
+
 
 async function fetchVegetables() {
   showLoading("กำลังโหลดรายการผักวันนี้...");
@@ -24,93 +39,95 @@ function showLoading(text = "กำลังโหลดข้อมูล...") 
 }
 
 function renderForm() {
+  const params = new URLSearchParams(window.location.search);
+  const customerName = params.get("customer") || "ลูกค้าของเรา";
+
   const container = document.getElementById("form-container");
   container.innerHTML = `
-    <div class="mb-4">
-      <div id="realtime-clock" class="text-gray-600 mb-4 text-right">🕒 ขณะนี้: ...</div>
-      <label class="block mb-1 font-medium text-lg text-gray-700 flex items-center gap-2">
-        🧺 เลือกผักที่ต้องการ 🥬
-      </label>
-      <div class="text-right">
-        <div class="inline-flex items-center gap-2">
-          <label for="delivery-date" class="whitespace-nowrap  text-gray-600">🚚 วันที่จัดส่ง </label>
-          <input 
-            id="delivery-date" 
-            type="date" 
-            class="border rounded-md px-3 py-2 shadow-sm text-sm cursor-pointer"
-            onchange="updateDeliveryDate()" 
-          />
+    <div class="max-w-lg mx-auto p-4 bg-white shadow-md rounded-lg text-gray-800">
+      <div class="flex justify-between items-center mb-4">
+        <div class="text-2xl font-bold tracking-tight">HALEM FARM</div>
+        <div id="realtime-clock" class="text-right text-sm text-gray-500">ขณะนี้: ...</div>
+      </div>
+
+      <div class="mb-4">
+        <label for="delivery-date" class="block text-gray-700 font-medium mb-1">📦 วันที่จัดส่ง</label>
+        <input 
+          id="delivery-date" 
+          type="date" 
+          class="w-full border rounded-md px-4 py-2 shadow-sm text-sm"
+          onchange="updateDeliveryDate()" 
+        />
+        <p id="formatted-date" class="text-sm text-green-700 mt-1"></p>
+        <p id="holiday-warning" class="text-sm text-red-500 mt-1"></p>
+      </div>
+
+      <div class="divide-y divide-gray-200">
+        ${vegetables.map((veg, index) => `
+          <div class="py-3 grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-6">
+              <div class="font-medium">${veg.name}</div>
+              <div class="text-xs text-gray-500">(${veg.price} บาท/กก.)</div>
+            </div>
+            <div class="col-span-4">
+              <input 
+                type="number" 
+                min="0" 
+                step="0.5" 
+                data-name="${veg.name}" 
+                data-price="${veg.price}"
+                placeholder="จำนวน (กก.)" 
+                class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right text-sm"
+                oninput="updateItemTotal(this)"
+              />
+            </div>
+            <div class="col-span-2 text-right font-semibold">
+              <span id="total-${index}">0</span> บาท
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="mt-4 flex justify-between font-medium text-lg">
+        <div>รวมทั้งหมด:</div>
+        <div class="text-right">
+          <span id="total-amount">0.0</span> กก. / 
+          <span id="total-price">0</span> บาท
         </div>
-        <p id="formatted-date" class="font-medium mt-1 text-gray-700"></p>
-        <p id="holiday-warning" class="font-medium mt-1 text-red-600"></p>
+      </div>
+
+      <div class="mt-6">
+        <button 
+          id="check-order-btn"
+          onclick="confirmOrder()" 
+          class="w-full text-white bg-green-600 hover:bg-green-700 py-2 px-4 rounded shadow opacity-50 cursor-not-allowed"
+          disabled
+        >
+          ✅ ตรวจสอบคำสั่งซื้อ
+        </button>
+      </div>
+
+      <div class="text-sm mt-4 text-gray-600">
+        ⏰ กรุณาสั่งก่อน <span class="font-medium">08:30 น.</span> เพื่อจัดส่งภายในวันนี้ หากเลยเวลานี้จะจัดส่งในวันถัดไป
+      </div>
+
+      <div class="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+        <div class="font-semibold text-red-700 mb-1">📌 วันหยุดฟาร์ม</div>
+        <ul class="list-disc list-inside text-red-600">
+          ${Object.entries(farmSchedule)
+            .filter(([_, isOpen]) => !isOpen)
+            .map(([day]) => `<li>วัน${day}</li>`)
+            .join("")}
+        </ul>
       </div>
     </div>
-    <div class="space-y-4">
-      ${vegetables.map((veg, index) => `
-        <div class="grid grid-cols-12 items-center gap-2">
-          <div class="col-span-5 text-sm font-medium text-gray-800 leading-snug">
-            ${veg.name}
-            <div class="text-xs text-gray-500">(${veg.price} บาท/กก.)</div>
-          </div>
-          <div class="col-span-4">
-            <input 
-              type="number" 
-              min="0" 
-              step="0.5" 
-              data-name="${veg.name}" 
-              data-price="${veg.price}"
-              placeholder="จำนวน (กก.)" 
-              class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right text-sm"
-              oninput="updateItemTotal(this)"
-            />
-          </div>
-          <div class="col-span-3 text-right text-sm font-semibold text-gray-700">
-            <span id="total-${index}">0</span> บาท
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="mt-4 text-right  font-medium text-gray-700">
-      รวมทั้งหมด: <span id="total-amount">0.0</span> กก. /
-      <span id="total-price">0</span> บาท
-    </div>
-    <div class="text-center mt-6">
-      <button 
-        id="check-order-btn"
-        onclick="confirmOrder()" 
-        class="text-sm bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow opacity-50 cursor-not-allowed"
-        disabled
-      >
-        ตรวจสอบคำสั่งซื้อ
-      </button>
-    </div>
   `;
-
-  const closedDaysHtml = `
-  <div class="text-xs mt-2 text-red-400 font-medium mb-1">
-    ⏰ สั่งก่อน 08:30 น. เพื่อจัดส่งภายในวันนี้  
-    หากเลยเวลานี้ จะจัดส่งในวันถัดไปนะคะ
-  </div>
-  <div class="mt-6 text-sm text-gray-600">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-3">
-      <div class="font-medium text-red-700 mb-1">📌 วันหยุดฟาร์ม</div>
-      <ul class="list-disc list-inside text-red-600">
-        ${Object.entries(farmSchedule)
-          .filter(([_, isOpen]) => !isOpen)
-          .map(([day]) => `<li>วัน${day}</li>`)
-          .join("")}
-      </ul>
-    </div>
-  </div>
-`;
-container.innerHTML += closedDaysHtml;
 
   // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
   const now = new Date();
   const cutoffHour = 8;
   const cutoffMinute = 30;
 
-  // ถ้าเลย 08:30 แล้ว → เพิ่ม 1 วัน
   if (now.getHours() > cutoffHour || (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)) {
     now.setDate(now.getDate() + 1);
   }
@@ -121,10 +138,9 @@ container.innerHTML += closedDaysHtml;
   deliveryInput.value = deliveryDateStr;
   deliveryInput.min = deliveryDateStr;
   updateDeliveryDate();
-
-  // (Optional) เปิด calendar เมื่อคลิก
-  // dateInput.addEventListener("click", () => dateInput.showPicker?.());
 }
+
+
 
 function updateItemTotal(input) {
   const price = parseFloat(input.dataset.price);
@@ -254,7 +270,8 @@ function submitOrder(summaryJson, deliveryDate) {
   const payload = {
     date: new Date().toISOString(),
     deliveryDate: deliveryDate,
-    user: getRandomUserName(),
+    user: customerName,
+    userId:userId,
     order: summary
   };
 
@@ -434,8 +451,9 @@ function updateRealtimeClock() {
   const year = now.getFullYear() + 543;
   const time = now.toLocaleTimeString('th-TH', { hour12: false });
 
-  const fullText = `🕒 ขณะนี้: วัน${day}ที่ ${date} ${month} พ.ศ. ${year}\n เวลา ${time}`;
+  const fullText = `วัน${day}ที่ ${date} ${month} พ.ศ. ${year}\n เวลา ${time}`;
   document.getElementById("realtime-clock").innerText = fullText;
 }
 
+initCustomerName();
 fetchVegetables();
