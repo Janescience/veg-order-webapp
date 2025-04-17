@@ -26,12 +26,12 @@ async function fetchCustomerInfo() {
   showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
 
   // showLoading("all", "กำลังโหลดข้อมูล...");
-  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&name=${encodeURIComponent(customerName)}`;
+  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&userId=${encodeURIComponent(userId)}`;
   try {
     
     const res = await fetch(url);
     const data = await res.json();
-    if (data && data.name === customerName) {
+    if (data && data.userId === userId) {
       savedCustomerInfo = data;
     }
     hideLoading("customer")
