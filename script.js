@@ -293,7 +293,7 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
   const rows = summary.map((item, index) => `
     <tr class="border-b">
       <td class="py-1">${item.nameTh} (${item.name})</td>
-      <td class="text-center py-1">${item.amount.toFixed(1)}</td>
+      <td class="text-center py-1">${item.amount.toFixed(2)}</td>
       <td class="text-center py-1">${item.price}</td>
       <td class="text-right py-1">${item.subtotal}</td>
     </tr>
@@ -322,7 +322,7 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
         <tfoot class="font-black bg-gray-50 border-t">
           <tr>
             <td >รวมทั้งหมด</td>
-            <td class="text-center">${totalAmount.toFixed(1)}</td>
+            <td class="text-center">${totalAmount.toFixed(2)}</td>
             <td></td>
             <td class="text-right">${totalPrice}</td>
           </tr>
@@ -380,7 +380,7 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     const itemsHtml = summary.map(item => `
       <tr class="border-t text-sm">
         <td class="px-2 py-1">${item.nameTh} (${item.name})</td>
-        <td class="px-2 py-1 text-center">${item.amount.toFixed(1)}</td>
+        <td class="px-2 py-1 text-center">${item.amount.toFixed(2)}</td>
         <td class="px-2 py-1 text-right">${item.price}</td>
         <td class="px-2 py-1 text-right">${item.subtotal}</td>
       </tr>
@@ -420,14 +420,14 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
                 <tr>
                   <td class="border px-2 py-1 text-center">${i + 1}</td>
                   <td class="border px-2 py-1">${item.nameTh || item.name}</td>
-                  <td class="border px-2 py-1 text-center">${item.amount.toFixed(1)}</td>
+                  <td class="border px-2 py-1 text-center">${item.amount.toFixed(2)}</td>
                   <td class="border px-2 py-1 text-right">${item.price}</td>
                   <td class="border px-2 py-1 text-right">${item.subtotal}</td>
                 </tr>
               `).join("")}
               <tr class="border-t font-semibold bg-gray-50">
                 <td colspan="2" class="px-2 py-2 text-left">รวมทั้งหมด</td>
-                <td class="px-2 py-2 text-center">${totalKg.toFixed(1)}</td>
+                <td class="px-2 py-2 text-center">${totalKg.toFixed(2)}</td>
                 <td class="px-2 py-2 text-right">-</td>
                 <td class="px-2 py-2 text-right">${totalBaht}</td>
               </tr>
