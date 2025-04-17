@@ -23,6 +23,7 @@ async function fetchCustomerInfo() {
   updateRealtimeClock();
   showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
   showLoading("vegetables", "กำลังโหลดรายการผัก...");
+  showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
 
   // showLoading("all", "กำลังโหลดข้อมูล...");
   const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&name=${encodeURIComponent(customerName)}`;
@@ -36,6 +37,7 @@ async function fetchCustomerInfo() {
     hideLoading("customer")
     renderForm();
     showLoading("vegetables", "กำลังโหลดรายการผัก...");
+    showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
     fetchVegetables(); // แล้วค่อยโหลดผัก
   } catch (e) {
     console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
@@ -51,6 +53,7 @@ async function fetchVegetables() {
   vegetables.splice(0, vegetables.length, ...data.vegetables);
   farmSchedule = data.schedule;
   hideLoading("vegetables")
+  hideLoading("holidays")
   renderForm();
 }
 
@@ -58,6 +61,8 @@ async function fetchVegetables() {
 function hideLoading(section = "all") {
   const id = section === "customer" ? "customer-section" :
              section === "vegetables" ? "vegetables-section" :
+             section === "holidays" ? "holidays-section" :
+
              "form-container";
 
   const el = document.getElementById(id);
@@ -89,6 +94,9 @@ function showLoading(section = "all", text = "กำลังโหลดข้�
   } else if (section === "vegetables") {
     const vegSection = document.getElementById("vegetables-section");
     if (vegSection) vegSection.innerHTML = spinnerHTML;
+  }  else if (section === "holidays") {
+    const holidaySection = document.getElementById("holidays-section");
+    if (holidaySection) holidaySection.innerHTML = spinnerHTML;
   } else {
     const container = document.getElementById("form-container");
     container.innerHTML = spinnerHTML;
@@ -111,32 +119,35 @@ function renderForm() {
         ** กรุณาสั่งก่อน <span class="font-medium">08:30 น.</span> เพื่อจัดส่งภายในวันนี้ หากเลยเวลานี้จะจัดส่งในวันถัดไป **
       </div>
 
-      <div class="grid grid-cols-2 gap-4 mb-2" id="customer-section">
-        <div>
-          <label class="block text-gray-700 font-medium mb-1">🏪 ชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span>
-          </label>
-          <input id="customer" type="text" class="w-full border rounded-md px-4 py-2 shadow-sm" placeholder="กรุณากรอกชื่อร้าน">
-        </div>
-        <div>
-          <label class="block text-gray-700 font-medium mb-1">💳 วิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
-          <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
-          <option value="" selected>กรุณาเลือกวิธีชำระเงิน</option>
-            <option value="เงินสด" >เงินสด</option>
-            <option value="โอนเงิน">โอนเงิน</option>
-            <option value="เครดิต">เครดิต</option>
-          </select>
-        </div>
-        <div class="col-span-2">
-          <label for="delivery-date" class="block text-gray-700 font-medium mb-1">
-          🚛 วันที่จัดส่ง
-          <span id="formatted-date" class="text-green-700 font-normal"></span>
-          <span id="holiday-warning" class="text-red-500 font-normal"></span>
-          </label>
-          <input id="delivery-date" type="date" class="w-full border rounded-md px-4 py-2 shadow-sm " onchange="updateDeliveryDate()" />
+      <div id="customer-section">
+        <div class="grid grid-cols-2 gap-4 mb-2" >
+          <div>
+            <label class="block text-gray-700 font-medium mb-1">🏪 ชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span>
+            </label>
+            <input id="customer" type="text" class="w-full border rounded-md px-4 py-2 shadow-sm" placeholder="กรุณากรอกชื่อร้าน">
+          </div>
+          <div>
+            <label class="block text-gray-700 font-medium mb-1">💳 วิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+            <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
+            <option value="" selected>กรุณาเลือกวิธีชำระเงิน</option>
+              <option value="เงินสด" >เงินสด</option>
+              <option value="โอนเงิน">โอนเงิน</option>
+              <option value="เครดิต">เครดิต</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label for="delivery-date" class="block text-gray-700 font-medium mb-1">
+            🚛 วันที่จัดส่ง
+            <span id="formatted-date" class="text-green-700 font-normal"></span>
+            <span id="holiday-warning" class="text-red-500 font-normal"></span>
+            </label>
+            <input id="delivery-date" type="date" class="w-full border rounded-md px-4 py-2 shadow-sm " onchange="updateDeliveryDate()" />
+          </div>
         </div>
       </div>
+      
 
-      <div class="bg-red-50 border border-red-200 rounded-lg p-2">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-2" id="holidays-section">
         <div class="font-semibold text-red-700 mb-1">📌 วันหยุดฟาร์ม</div>
         <ul class="list-disc list-inside text-red-600">
           ${Object.entries(farmSchedule).filter(([_, isOpen]) => !isOpen).map(([day]) => `<li>วัน${day}</li>`).join("")}
@@ -292,13 +303,11 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
     <div class="max-w-xl mx-auto bg-white shadow p-2 rounded-lg font-[Kanit] ">
       <h2 class="text-xl font-bold mb-2 text-center"> ตรวจสอบคำสั่งซื้อ</h2>
       
-      <div class="grid grid-cols-2 gap-4  mb-4">
-        <div class="col-span-2 font-thin">🧺 สั่งซื้อ <strong>${thaiToday}</strong> </div>
-        <div>🏪 ชื่อร้าน <strong>${customer}</strong> </div>
-        <div class="text-right">💳 วิธีชำระเงิน <strong>${payMethod}</strong> </div>
+      <div class="grid grid-cols-1 gap-4  mb-4">
+        <div class="col-span-2 font-thin">สั่งซื้อ: <strong>${thaiToday}</strong> </div>
+        <div>ชื่อลูกค้า: <strong>${customer}</strong> </div>
+        <div class="text-right">วิธีชำระเงิน: <strong>${payMethod}</strong> </div>
       </div>
-
-      
 
       <table class="w-full border mb-4">
         <thead class="bg-gray-100">
@@ -320,7 +329,7 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
         </tfoot>
       </table>
       <div class="grid grid-cols-1 gap-4  mb-4">
-        <div class="text-right"><strong>🚛 จัดส่ง </strong> ${thaiDeliveryDate}</div>
+        <div class="text-right"><strong>จัดส่ง </strong> ${thaiDeliveryDate}</div>
       </div>
       <div class="bg-yellow-50 border border-yellow-300 rounded px-3 py-2 mb-4 text-yellow-800 ">
         ⚠️ โปรดตรวจสอบรายการให้ถูกต้องก่อนกดยืนยัน หากต้องการแก้ไข กรุณากดย้อนกลับ
@@ -356,7 +365,7 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
 
   console.log("submitOrder payload : ",payload)
 
-  showLoading("กำลังส่งคำสั่งซื้อ...");
+  showLoading("all","กำลังส่งคำสั่งซื้อ...");
   fetch(GOOGLE_SCRIPT_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -378,22 +387,21 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     `).join('');
     const html = `
       <div class="max-w-md mx-auto bg-white border rounded-lg shadow p-1 text-sm text-gray-800">
-        <h2 class="text-xl font-bold text-center mb-2 mt-1">🧾 ใบสั่งซื้อ</h2>
-          <div class="flex justify-between items-center mb-2">
-            <div class="text-xl font-bold text-green-700">HALEM FARM</div>
-            <div class="text-right text-sm text-gray-500">
-              ${thaiToday}<br />
-            </div>
+        <h2 class="text-2xl font-bold text-center mb-2 mt-1">ใบสั่งซื้อ</h2>
+          <div class="flex items-center gap-2 text-xl font-black justify-center tracking-tight mb-2">
+            <img src="https://scontent.fbkk22-3.fna.fbcdn.net/v/t39.30808-6/302480319_457596419719079_7749969755743916229_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=MAROHEmmF14Q7kNvwHe-Y0m&_nc_oc=Adl7sXRBR9bDBfiQcje0jBOIRwRmCbVc8DJxmrMplLuwehgLiClJxpqNP1Wr-SNKBmv7kBBy2PBSmAKAklgWAADB&_nc_zt=23&_nc_ht=scontent.fbkk22-3.fna&_nc_gid=nhkM2n0lODriwDN-knDLLA&oh=00_AfGHhITjeQVc9U0zDNMp_z9t4CkbW2nfKpvLK1uPjoE0Jg&oe=68068F2B" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
+            <span>HALEM FARM</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 mb-2 text-sm">
+          <div class="grid grid-cols-1 gap-2 mb-2 text-sm">
             <div>
+              <div><strong>สั่งโดย:</strong> ${customerName}</div>
               <div><strong>ชื่อลูกค้า:</strong> ${customer}</div>
               <div><strong>วิธีชำระเงิน:</strong> ${payMethod}</div>
+              <div><strong>วันที่สั่งซื้อ:</strong> ${thaiToday}</div>
               <div><strong>วันที่จัดส่ง:</strong> ${thaiDeliveryDate}</div>
             </div>
             <div class="text-right">
-              <div><strong>สั่งโดย:</strong> ${customerName}</div>
             </div>
           </div>
 
@@ -470,6 +478,10 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
       </div>
     `;
     document.getElementById("form-container").innerHTML = html;
+    setTimeout(() => {
+      showSuccessToast();
+    }, 100);
+    
   });
 }
 
@@ -564,6 +576,17 @@ function convertNumberToThaiText(amount) {
   }
 
   return text;
+}
+
+
+function showSuccessToast() {
+  const toast = document.getElementById("toast-success");
+  if (toast) {
+    toast.classList.remove("hidden");
+    setTimeout(() => {
+      toast.classList.add("hidden");
+    }, 3000);
+  }
 }
 
 
