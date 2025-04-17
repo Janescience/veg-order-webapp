@@ -31,7 +31,7 @@ async function fetchCustomerInfo() {
     
     const res = await fetch(url);
     const data = await res.json();
-    if (data && data.userId === userId) {
+    if (data && data.id === userId) {
       savedCustomerInfo = data;
     }
     hideLoading("customer")
