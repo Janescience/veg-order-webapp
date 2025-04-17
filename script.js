@@ -329,7 +329,7 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
         </tfoot>
       </table>
       <div class="grid grid-cols-1 gap-4  mb-4">
-        <div class="text-right"><strong>จัดส่ง </strong> ${thaiDeliveryDate}</div>
+        <div class="text-right">จัดส่ง <strong>${thaiDeliveryDate}</strong></div>
       </div>
       <div class="bg-yellow-50 border border-yellow-300 rounded px-3 py-2 mb-4 text-yellow-800 ">
         ⚠️ โปรดตรวจสอบรายการให้ถูกต้องก่อนกดยืนยัน หากต้องการแก้ไข กรุณากดย้อนกลับ
@@ -461,8 +461,8 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
             ${payMethod === 'โอนเงิน'
               ? `กรุณาโอนชำระเงินภายใน 3 วัน นับจากวันจัดส่งสินค้า<br/>
                 เข้าบัญชี <strong>ธนาคารกสิกรไทย</strong><br/>
-                เลขที่บัญชี: <strong>012-3-45678-9</strong><br/>
-                ชื่อบัญชี: <strong>นางสาวปลูกผัก แสนอร่อย</strong>`
+                เลขที่บัญชี: <strong>113-8-48085-9</strong><br/>
+                ชื่อบัญชี: <strong>นายฮาเล็ม เจะมาริกัน</strong>`
               : payMethod === 'เครดิต' ? `กรุณาชำระเงินหลังจากวางบิลภายใน 7 วัน` : `กรุณาชำระเงินภายในวันจัดส่งสินค้า`}
           </div>
 
