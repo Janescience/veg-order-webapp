@@ -1,0 +1,31 @@
+body {
+  font-family: 'Kanit', sans-serif;
+  padding: 20px;
+  background: #f9f9f9;
+}
+.container {
+  max-width: 480px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+}
+.veg-item {
+  margin-bottom: 10px;
+}
+input[type='number'] {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+}
+button {
+  padding: 10px 20px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover {
+  background: #388e3c;
+}
