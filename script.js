@@ -106,7 +106,7 @@ function showLoading(section = "all", text = "กำลังโหลดข้�
 function renderForm() {
   const container = document.getElementById("form-container");
   container.innerHTML = `
-    <div class="max-w-lg mx-auto p-2 bg-white shadow-md rounded-lg text-gray-800">
+    <div class="max-w-lg mx-auto p-2 bg-white shadow-lg rounded-lg text-gray-800">
       <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
         <img src="https://scontent.fbkk22-3.fna.fbcdn.net/v/t39.30808-6/302480319_457596419719079_7749969755743916229_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=MAROHEmmF14Q7kNvwHe-Y0m&_nc_oc=Adl7sXRBR9bDBfiQcje0jBOIRwRmCbVc8DJxmrMplLuwehgLiClJxpqNP1Wr-SNKBmv7kBBy2PBSmAKAklgWAADB&_nc_zt=23&_nc_ht=scontent.fbkk22-3.fna&_nc_gid=nhkM2n0lODriwDN-knDLLA&oh=00_AfGHhITjeQVc9U0zDNMp_z9t4CkbW2nfKpvLK1uPjoE0Jg&oe=68068F2B" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
         <span>HALEM FARM</span>
@@ -129,7 +129,7 @@ function renderForm() {
           <div>
             <label class="block text-gray-700 font-medium mb-1">💳 วิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
             <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
-            <option value="" selected>กรุณาเลือกวิธีชำระเงิน</option>
+            <option value="" selected>เลือกวิธีชำระเงิน</option>
               <option value="เงินสด" >เงินสด</option>
               <option value="โอนเงิน">โอนเงิน</option>
               <option value="เครดิต">เครดิต</option>
@@ -155,19 +155,22 @@ function renderForm() {
       </div>
 
       <div class="divide-y divide-gray-200 mt-4" id="vegetables-section">
-      <div class="font-medium text-lg">🥬 รายการผัก</div>
+      <div class="font-medium text-lg">📋 รายการผัก</div>
         ${vegetables.map((veg, index) => `
           <div class="py-3 grid grid-cols-12 gap-2 items-center">
-            <div class="col-span-6">
-              <div class="font-medium">${veg.nameTh}</div>
-              <div class="font-medium">${veg.nameEng}</div>
-              <div class="text-sm text-gray-500">(${veg.price} บาท/กก.)</div>
+            <div>
+              <img src="${veg.image}" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
             </div>
             <div class="col-span-4">
-              <input type="number" min="0" step="0.5" data-name="${veg.nameEng}" data-nameth="${veg.nameTh}" data-price="${veg.price}" placeholder="จำนวน (กก.)" class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right" oninput="updateItemTotal(this)" />
+              <div class="font-medium">${veg.nameTh}</div>
+              <div class="text-base text-gray-500">${veg.nameEng}</div>
+            </div>
+            <div class="col-span-4">
+              <input type="number" min="0" step="0.5" data-name="${veg.nameEng}" data-nameth="${veg.nameTh}" data-price="${veg.price}" data-image="${veg.image}" placeholder="จำนวน (กก.)" class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right" oninput="updateItemTotal(this)" />
+              <div class="text-sm text-right">${veg.price} บาท/กก.</div>
             </div>
             <div class="col-span-2 text-right font-semibold">
-              <span id="total-${index}">0</span> บาท
+              <span id="total-${index}" class="font-bold underline">0</span> บาท
             </div>
           </div>
         `).join('')}
@@ -276,7 +279,7 @@ function confirmOrder() {
     const amount = parseFloat(input.value);
     const price = parseFloat(input.dataset.price);
     if (!isNaN(amount) && amount > 0) {
-      summary.push({ name: input.dataset.name,nameTh:input.dataset.nameth, amount, price, subtotal: price * amount });
+      summary.push({ name: input.dataset.name,nameTh:input.dataset.nameth, amount, price, subtotal: price * amount,image:input.dataset.image });
       totalAmount += amount;
       totalPrice += price * amount;
     }
@@ -292,10 +295,12 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
 
   const rows = summary.map((item, index) => `
     <tr class="border-b">
-      <td class="py-1">${item.nameTh} (${item.name})</td>
-      <td class="text-center py-1">${item.amount.toFixed(2)}</td>
-      <td class="text-center py-1">${item.price}</td>
-      <td class="text-right py-1">${item.subtotal}</td>
+      <td class="px-2 py-1">
+      <img src="${item.image}" alt="Vegetable" class="w-8 h-8 object-contain" /></td>
+      <td class="px-2 py-1">${item.nameTh}</td>
+      <td class="px-2 text-center py-1">${item.amount.toFixed(2)}</td>
+      <td class="px-2 text-center py-1">${item.price}</td>
+      <td class="px-2 text-right py-1">${item.subtotal}</td>
     </tr>
   `).join('');
 
@@ -309,22 +314,22 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
         <div class="text-right">วิธีชำระเงิน: <strong>${payMethod}</strong> </div>
       </div>
 
-      <table class="w-full border mb-4">
+      <table class="w-full border mb-4 text-sm">
         <thead class="bg-gray-100">
           <tr class="border-b">
-            <th class="py-1 text-left">รายการผัก</th>
-            <th class="py-1 text-center">จำนวน (กก.)</th>
-            <th class="py-1 text-center">ราคา/กก.</th>
-            <th class="py-1 text-right">รวม (บาท)</th>
+            <th colspan="2" class="px-2 py-1 text-left">รายการผัก</th>
+            <th class="px-2 py-1 text-center">จำนวน (กก.)</th>
+            <th class="px-2 py-1 text-center">ราคา/กก.</th>
+            <th class="px-2 py-1 text-right">รวม (บาท)</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
         <tfoot class="font-black bg-gray-50 border-t">
           <tr>
-            <td >รวมทั้งหมด</td>
-            <td class="text-center">${totalAmount.toFixed(2)}</td>
+            <td class="px-2 py-1" colspan="2">รวมทั้งหมด</td>
+            <td class="px-2 py-1  text-center">${totalAmount.toFixed(2)}</td>
             <td></td>
-            <td class="text-right">${totalPrice}</td>
+            <td class="px-2 py-1  text-right">${totalPrice}</td>
           </tr>
         </tfoot>
       </table>
