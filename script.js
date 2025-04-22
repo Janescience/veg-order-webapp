@@ -108,7 +108,7 @@ function renderForm() {
   container.innerHTML = `
     <div class="max-w-lg mx-auto p-2 bg-white shadow-lg rounded-lg text-gray-800">
       <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
-        <img src="https://scontent.fbkk22-3.fna.fbcdn.net/v/t39.30808-6/302480319_457596419719079_7749969755743916229_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=MAROHEmmF14Q7kNvwHe-Y0m&_nc_oc=Adl7sXRBR9bDBfiQcje0jBOIRwRmCbVc8DJxmrMplLuwehgLiClJxpqNP1Wr-SNKBmv7kBBy2PBSmAKAklgWAADB&_nc_zt=23&_nc_ht=scontent.fbkk22-3.fna&_nc_gid=nhkM2n0lODriwDN-knDLLA&oh=00_AfGHhITjeQVc9U0zDNMp_z9t4CkbW2nfKpvLK1uPjoE0Jg&oe=68068F2B" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
+        <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
         <span>HALEM FARM</span>
       </div>
       <div class="flex justify-center items-center mb-4">
@@ -158,7 +158,7 @@ function renderForm() {
       <div class="font-medium text-lg">📋 รายการผัก</div>
         ${vegetables.map((veg, index) => `
           <div class="py-3 grid grid-cols-12 gap-2 items-center">
-            <div>
+            <div class="col-span-2" >
               <img src="${veg.image}" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
             </div>
             <div class="col-span-4">
@@ -207,7 +207,7 @@ function renderForm() {
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
 
-  const deliveryDateStr = deliveryDate.toISOString().split("T")[0];
+  const deliveryDateStr = deliveryDate.toLocaleDateString("sv-SE");
   document.getElementById("delivery-date").value = deliveryDateStr;
   document.getElementById("delivery-date").min = deliveryDateStr;
   document.getElementById("customer").value = savedCustomerInfo.shop || "";
@@ -394,7 +394,7 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
       <div class="max-w-md mx-auto bg-white border rounded-lg shadow p-1 text-sm text-gray-800">
         <h2 class="text-2xl font-bold text-center mb-2 mt-1">ใบสั่งซื้อ</h2>
           <div class="flex items-center gap-2 text-xl font-black justify-center tracking-tight mb-2">
-            <img src="https://scontent.fbkk22-3.fna.fbcdn.net/v/t39.30808-6/302480319_457596419719079_7749969755743916229_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=MAROHEmmF14Q7kNvwHe-Y0m&_nc_oc=Adl7sXRBR9bDBfiQcje0jBOIRwRmCbVc8DJxmrMplLuwehgLiClJxpqNP1Wr-SNKBmv7kBBy2PBSmAKAklgWAADB&_nc_zt=23&_nc_ht=scontent.fbkk22-3.fna&_nc_gid=nhkM2n0lODriwDN-knDLLA&oh=00_AfGHhITjeQVc9U0zDNMp_z9t4CkbW2nfKpvLK1uPjoE0Jg&oe=68068F2B" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
+            <img src="logo.png" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
             <span>HALEM FARM</span>
           </div>
 
