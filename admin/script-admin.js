@@ -14,7 +14,6 @@ function renderForm() {
   container.innerHTML = `
     <div class="max-w-lg mx-auto p-2 bg-white shadow-md rounded-lg text-gray-800">
       <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
-        <img src="https://scontent.fbkk22-3.fna.fbcdn.net/v/t39.30808-6/302480319_457596419719079_7749969755743916229_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=MAROHEmmF14Q7kNvwHe-Y0m&_nc_oc=Adl7sXRBR9bDBfiQcje0jBOIRwRmCbVc8DJxmrMplLuwehgLiClJxpqNP1Wr-SNKBmv7kBBy2PBSmAKAklgWAADB&_nc_zt=23&_nc_ht=scontent.fbkk22-3.fna&_nc_gid=nhkM2n0lODriwDN-knDLLA&oh=00_AfGHhITjeQVc9U0zDNMp_z9t4CkbW2nfKpvLK1uPjoE0Jg&oe=68068F2B" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
         <span>HALEM FARM ADMIN</span>
       </div>
 
@@ -153,13 +152,139 @@ function confirmOrder() {
     });
     console.log("summary : ",summary)
     if(totalAmount > 0){
-      showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount, totalPrice);
+      showConfirmationModal(
+        summary,
+        deliveryDate,
+        customer,
+        payMethod,
+        totalAmount,
+        totalPrice,
+      );
+      // showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount, totalPrice);
     }else{
       window.alert("กรอกจำนวน กก. อย่างน้อย 1 รายการ")
 
     }
   }
-  
+}
+
+function showConfirmationModal(summary, deliveryDate, customer, payMethod,totalAmount,totalPrice) {
+
+    // 2) คำนวณ relative day
+    const today = new Date();
+    const del = new Date(deliveryDate);
+    const utc1 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const utc2 = Date.UTC(del.getFullYear(),    del.getMonth(),    del.getDate());
+    const diffDays = Math.floor((utc2 - utc1) / (1000 * 60 * 60 * 24));
+    let relativeText = '';
+    if      (diffDays === 0) relativeText = 'วันนี้';
+    else if (diffDays === 1) relativeText = 'พรุ่งนี้';
+    else relativeText = `ในอีก ${diffDays} วัน`;
+
+  const modal = document.createElement('div');
+  modal.id = 'confirmation-modal';
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white p-6 rounded-lg max-w-lg w-full font-[Kanit]">
+      <h3 class="text-2xl font-bold mb-4 text-center">ตรวจสอบความถูกต้อง</h3>
+
+      <p class="text-red-600 mb-4">ติ้กยืนยันทั้งหมดเพื่อความถูกต้องในการสั่งซื้อ</p>
+
+      <div class="mb-4 p-2 bg-gray-50 rounded border border-gray-200">
+        <label class="inline-flex items-center">
+          <span class="font-medium text-xl">วันนี้ ${formatFullThaiDate(new Date())}</span>
+        </label>
+      </div>
+
+      <div class="mb-4 p-2 bg-green-50 rounded border border-green-200">
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="confirm-checkbox w-6 h-6 mt-1 mr-2" id="date-checkbox">
+          <span class="font-medium text-xl">จัดส่ง <u>${formatFullThaiDate(deliveryDate)}</u></span>
+        </label>
+      </div>
+
+      <div class="mb-4 p-2 bg-red-50 rounded border border-red-200">
+        <label class="inline-flex items-center">
+          <span class="font-medium text-xl">หมายความว่าจัดส่ง<u>${relativeText}</u> ?</span>
+          <input type="checkbox" class="confirm-checkbox w-6 h-6 mt-1 ml-2" >
+        </label>
+      </div>
+
+      <div class="mb-4 overflow-y-auto max-h-60 border rounded p-2">
+        ${ summary.map((item, idx) => `
+          <label class="flex items-center mb-2">
+            <input type="checkbox" class="confirm-checkbox w-6 h-6 mt-1 mr-2" data-index="${idx}">
+            <div class="flex-1">
+              <div>${item.nameTh}</div>
+              <div class="text-gray-700">จำนวน ${item.amount.toFixed(2)} กก. × ${item.price} บ. = ${item.subtotal} บาท</div>
+            </div>
+          </label>
+        `).join('') }
+      </div>
+
+      <div class="text-xl mt-2 mb-2 p-2 bg-gray-100 rounded flex justify-between font-semibold">
+        <label class="inline-flex items-center">
+          <p class="text-green-600 font-medium">รายการผักถูกต้องทั้ง ${summary.length} รายการ ?</p>
+          <input type="checkbox" class="confirm-checkbox w-6 h-6 mt-1 ml-2" >
+        </label>
+      </div>
+
+      <div class="text-xl mt-2 mb-2 p-2 bg-gray-100 rounded flex justify-between font-semibold">
+        <span>รวมทั้งหมด</span>
+        <span>${totalAmount} กก. / ${totalPrice} บาท</span>
+      </div>
+
+
+      ${ payMethod === 'เครดิต' ? `
+      <div class="mb-4">
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="confirm-checkbox w-6 h-6 mt-1 mr-2" >
+          <p class="text-red-600 font-medium">⚠️ อย่าลืมกรอกข้อมูลบริษัทเพื่อออกใบสั่งสินค้า</p>
+        </label>
+      </div>` : `
+      <div class="mb-4">
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="confirm-checkbox w-6 h-6 mt-1 mr-2" >
+          <p class="text-red-600 font-medium">⚠️ อย่าลืมกรอกข้อมูลบริษัทถ้าต้องออกใบเสร็จ</p>
+        </label>
+      </div>
+      `
+    }
+
+
+      <div class="flex justify-end space-x-4">
+        <button id="cancel-modal-btn" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">ยกเลิก</button>
+        <button id="final-confirm-btn"
+                class="px-4 py-2 bg-green-600 text-white rounded opacity-50 cursor-not-allowed"
+                disabled>
+          ✅ ยืนยันสุดท้าย
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const checkboxes = modal.querySelectorAll('.confirm-checkbox');
+  const finalBtn   = modal.querySelector('#final-confirm-btn');
+  const cancelBtn  = modal.querySelector('#cancel-modal-btn');
+
+  function updateFinalBtnState() {
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    finalBtn.disabled = !allChecked;
+    finalBtn.classList.toggle('opacity-50', !allChecked);
+    finalBtn.classList.toggle('cursor-not-allowed', !allChecked);
+  }
+
+  checkboxes.forEach(cb => cb.addEventListener('change', updateFinalBtnState));
+  cancelBtn.addEventListener('click', () => modal.remove());
+
+  finalBtn.addEventListener('click', () => {
+    // เมื่อติ๊กครบ ให้ปิด modal แล้วไปหน้าสรุปคำสั่งซื้อ
+    modal.remove();
+    showConfirmPage(summary, customer, payMethod, deliveryDate,
+                    summary.reduce((s, i) => s + i.amount, 0),
+                    summary.reduce((s, i) => s + i.subtotal, 0));
+  });
 }
 
 function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount, totalPrice) {
@@ -269,7 +394,6 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
       <div class="max-w-md mx-auto bg-white border rounded-lg shadow p-1 text-sm text-gray-800">
         <h2 class="text-2xl font-bold text-center mb-2 mt-1">ใบสั่งซื้อ</h2>
           <div class="flex items-center gap-2 text-xl font-black justify-center tracking-tight mb-2">
-            <img src="https://scontent.fbkk22-3.fna.fbcdn.net/v/t39.30808-6/302480319_457596419719079_7749969755743916229_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=MAROHEmmF14Q7kNvwHe-Y0m&_nc_oc=Adl7sXRBR9bDBfiQcje0jBOIRwRmCbVc8DJxmrMplLuwehgLiClJxpqNP1Wr-SNKBmv7kBBy2PBSmAKAklgWAADB&_nc_zt=23&_nc_ht=scontent.fbkk22-3.fna&_nc_gid=nhkM2n0lODriwDN-knDLLA&oh=00_AfGHhITjeQVc9U0zDNMp_z9t4CkbW2nfKpvLK1uPjoE0Jg&oe=68068F2B" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
             <span>HALEM FARM ADMIN</span>
           </div>
 

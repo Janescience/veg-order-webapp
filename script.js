@@ -272,6 +272,33 @@ function confirmOrder() {
   const deliveryDate = document.getElementById("delivery-date").value;
   const customer = document.getElementById("customer").value;
   const payMethod = document.getElementById("pay-method").value;
+
+   // เช็คเงื่อนไขวันที่ก่อน
+   const now = new Date();
+   const selectedDate = new Date(deliveryDate);
+ 
+   const cutoffHour = 8;
+   const cutoffMinute = 30;
+ 
+   // Normalize เวลาให้เทียบแค่วัน
+   const todayStr = now.toISOString().split("T")[0];
+   const selectedStr = selectedDate.toISOString().split("T")[0];
+ 
+   if (selectedStr < todayStr) {
+     alert("❌ ไม่สามารถสั่งสินค้าย้อนหลังได้ กรุณาเลือกวันที่จัดส่งใหม่");
+     return;
+   }
+ 
+   if (selectedStr === todayStr) {
+     if (
+       now.getHours() > cutoffHour ||
+       (now.getHours() === cutoffHour && now.getMinutes() >= cutoffMinute)
+     ) {
+       alert("⏰ เลยเวลาสั่งของวันนี้ (08:30 น.) แล้ว กรุณาเลือกวันจัดส่งเป็นวันถัดไป");
+       return;
+     }
+   }
+
   const summary = [];
   let totalAmount = 0;
   let totalPrice = 0;
