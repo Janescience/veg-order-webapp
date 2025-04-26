@@ -2,7 +2,7 @@ const vegetables = [];
 let farmSchedule = {};
 let customerName = "B";
 let userId = null;
-let savedCustomerInfo = {};
+let savedCustomerInfo = [];
 
 function initCustomerName() {
   const params = new URLSearchParams(window.location.search);
@@ -19,28 +19,27 @@ function initCustomerName() {
 
 async function fetchCustomerInfo() {
   renderForm();
-  setInterval(updateRealtimeClock, 1000);
-  updateRealtimeClock();
+  // setInterval(updateRealtimeClock, 1000);
+  // updateRealtimeClock();
   showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
   showLoading("vegetables", "กำลังโหลดรายการผัก...");
   showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
+  fetchVegetables(); // แล้วค่อยโหลดผัก
 
   // showLoading("all", "กำลังโหลดข้อมูล...");
   const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&userId=${encodeURIComponent(userId)}`;
   try {
     
     const res = await fetch(url);
-    const data = await res.json();
-    if (data && data.id === userId) {
-      savedCustomerInfo = data;
-    }
+    savedCustomerInfo = await res.json();
     hideLoading("customer")
     renderForm();
-    showLoading("vegetables", "กำลังโหลดรายการผัก...");
-    showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
-    fetchVegetables(); // แล้วค่อยโหลดผัก
+
   } catch (e) {
     console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
+    hideLoading("customer")
+    hideLoading("vegetables")
+    hideLoading("holidays")
     renderForm(); // 💡 ตอนนี้ sections ถูกสร้างแล้ว
   }
 }
@@ -48,6 +47,8 @@ async function fetchCustomerInfo() {
 
 
 async function fetchVegetables() {
+  showLoading("vegetables", "กำลังโหลดรายการผัก...");
+  showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
   const res = await fetch(GOOGLE_SCRIPT_URL);
   const data = await res.json();
   vegetables.splice(0, vegetables.length, ...data.vegetables);
@@ -105,55 +106,112 @@ function showLoading(section = "all", text = "กำลังโหลดข้�
 
 function renderForm() {
   const container = document.getElementById("form-container");
+  const shops = Array.isArray(savedCustomerInfo) ? savedCustomerInfo : [];
+
+  let customerSectionHTML = "";
+  if (shops.length >= 2) {
+    // 2+ shops → radios + “new” option
+    const shopRadios = savedCustomerInfo.map((c, i) => `
+      <label class="flex items-center space-x-2 mb-1">
+        <input
+          type="radio"
+          name="customer-choice"
+          value="${c.shop}"
+          class="form-radio h-5 w-5 accent-green-600"
+          id="shop-${i}"
+          ${i === 0 ? "checked" : ""} 
+        />
+        <span>${c.shop}</span>
+      </label>
+    `).join("");
+    
+    customerSectionHTML = `
+      <div id="customer-section" class="border border-green-600 rounded-lg p-2">
+        <label class="block font-medium mb-2 bg-gray-100 border border-gray-300 rounded-lg p-1">🏪 เลือกร้านที่เคยสั่ง</label>
+        <div>
+          ${shopRadios}
+          <label class="flex items-center space-x-2 text-gray-500 ">
+            <input
+              type="radio"
+              name="customer-choice"
+              value="__NEW__"
+              class="form-radio h-5 w-5 accent-green-600"
+              id="shop-new"
+            />
+            <span>กรอกร้านใหม่</span>
+          </label>
+        </div>
+        <div id="new-shop-input" class="hidden">
+          <input
+            id="customer-new"
+            type="text"
+            placeholder="กรอกร้านใหม่"
+            class="w-full border rounded-md px-4 py-2 shadow-sm "
+          />
+        </div>
+      </div>
+    `;
+  } else {
+    // 0 or 1 shop → single input
+    const defaultShop = Array.isArray(savedCustomerInfo) && savedCustomerInfo[0]
+      ? savedCustomerInfo[0].shop
+      : "";
+    customerSectionHTML = `
+      <div id="customer-section" class="border border-green-600 rounded-lg p-2" >
+        <label class="block font-medium mb-1">🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+        <input
+          id="customer-new"
+          type="text"
+          placeholder="กรุณากรอกชื่อร้าน"
+          class="w-full border rounded-md px-4 py-2 shadow-sm"
+          value="${defaultShop}"
+        />
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <div class="max-w-lg mx-auto p-2 bg-white shadow-lg rounded-lg text-gray-800">
       <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
         <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
         <span>HALEM FARM</span>
       </div>
-      <div class="flex justify-center items-center mb-4">
-        <div id="realtime-clock" class="text-center text-sm text-gray-500">ขณะนี้: ...</div>
-      </div>
-
-      <div class=" mt-2 mb-2 text-center text-gray-600">
-        ** กรุณาสั่งก่อน <span class="font-medium">08:30 น.</span> เพื่อจัดส่งภายในวันนี้ หากเลยเวลานี้จะจัดส่งในวันถัดไป **
+      <div class="text-sm mt-2 mb-2 text-center text-gray-600">
+        กรุณาสั่งก่อน <span class="font-medium">08:30 น.</span> เพื่อจัดส่งภายในวันนี้ หากเลยเวลานี้จะจัดส่งในวันถัดไป
       </div>
 
       <div id="customer-section">
-        <div class="grid grid-cols-2 gap-4 mb-2" >
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">🏪 ชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span>
-            </label>
-            <input id="customer" type="text" class="w-full border rounded-md px-4 py-2 shadow-sm" placeholder="กรุณากรอกชื่อร้าน">
-          </div>
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">💳 วิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+        <div class="grid grid-cols-2 gap-2 mb-2" >
+          ${customerSectionHTML}
+          <div class="border border-green-600 rounded-lg p-2">
+            <label class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1 ">เลือกวิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
             <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
             <option value="" selected>เลือกวิธีชำระเงิน</option>
-              <option value="เงินสด" >เงินสด</option>
-              <option value="โอนเงิน">โอนเงิน</option>
-              <option value="เครดิต">เครดิต</option>
+              <option value="เงินสด" >💰 เงินสด</option>
+              <option value="โอนเงิน">📱 โอนเงิน</option>
+              <option value="เครดิต">💳 เครดิต</option>
             </select>
           </div>
-          <div class="col-span-2">
-            <label for="delivery-date" class="block text-gray-700 font-medium mb-1">
-            🚛 วันที่จัดส่ง
-            <span id="formatted-date" class="text-green-700 font-normal"></span>
-            <span id="holiday-warning" class="text-red-500 font-normal"></span>
+          <div class="border border-green-600 rounded-lg p-2">
+            <label for="delivery-date" class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">
+            🚛 เลือกวันที่จัดส่ง
+            
             </label>
             <input id="delivery-date" type="date" class="w-full border rounded-md px-4 py-2 shadow-sm " onchange="updateDeliveryDate()" />
+          </div>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-2" id="holidays-section">
+            <div class="font-semibold text-red-700 mb-1">🚫 วันหยุดฟาร์ม</div>
+            <ul class="list-disc list-inside text-red-600 text-sm ">
+              ${Object.entries(farmSchedule).filter(([_, isOpen]) => !isOpen).map(([day]) => `<li>วัน${day}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="col-span-2 bg-gray-200 border border-gray-200 rounded-lg p-2">
+            <span id="formatted-date" class="text-green-700 font-normal"></span>
+            <span id="holiday-warning" class="text-red-500 font-normal"></span>
           </div>
         </div>
       </div>
       
-
-      <div class="bg-red-50 border border-red-200 rounded-lg p-2" id="holidays-section">
-        <div class="font-semibold text-red-700 mb-1">📌 วันหยุดฟาร์ม</div>
-        <ul class="list-disc list-inside text-red-600">
-          ${Object.entries(farmSchedule).filter(([_, isOpen]) => !isOpen).map(([day]) => `<li>วัน${day}</li>`).join("")}
-        </ul>
-      </div>
-
       <div class="divide-y divide-gray-200 mt-4" id="vegetables-section">
       <div class="font-medium text-lg">📋 รายการผัก</div>
         ${vegetables.map((veg, index) => `
@@ -195,6 +253,54 @@ function renderForm() {
     </div>
   `;
 
+  if (shops.length >= 2) {
+    const idx = 0; // radio แรก
+    document.getElementById('pay-method').value = shops[idx].method;
+  } else if (shops[0]?.method) {
+    document.getElementById('pay-method').value = shops[0].method;
+  }
+
+  const radios = document.querySelectorAll('input[name="customer-choice"]');
+  const paySelect   = document.getElementById('pay-method');
+  const newInputDiv = document.getElementById('new-shop-input');
+  const newInput    = document.getElementById('customer-new');
+
+  radios.forEach(radio => {
+    radio.addEventListener('change', e => {
+      const chosen = e.target.value;
+  
+      if (chosen === "__NEW__") {
+        // New‐shop path
+        newInputDiv.classList.remove('hidden');
+        newInput.value = "";
+        paySelect.value = ""; 
+      } else {
+        // Existing‐shop path
+        newInputDiv.classList.add('hidden');
+        newInput.value = "";
+        // Find the shop object by its name
+        const shopObj = shops.find(s => s.shop === chosen);
+        if (shopObj) {
+          paySelect.value = shopObj.method;
+        } else {
+          paySelect.value = "";
+          console.warn('ไม่มีข้อมูล method สำหรับร้าน:', chosen);
+        }
+      }
+  
+      checkEnableConfirmButton();
+    });
+  });
+
+  // typing in the new-shop input clears any radio
+  if (newInput) {
+    newInput.addEventListener('input', () => {
+      document.querySelectorAll('input[name="customer-choice"]').forEach(r => r.checked = false);
+      document.getElementById('shop-new').checked = !!newInput.value.trim();
+      checkEnableConfirmButton();
+    });
+  }
+
   let deliveryDate = new Date();
   const cutoffHour = 8;
   const cutoffMinute = 30;
@@ -210,9 +316,9 @@ function renderForm() {
   const deliveryDateStr = deliveryDate.toLocaleDateString("sv-SE");
   document.getElementById("delivery-date").value = deliveryDateStr;
   document.getElementById("delivery-date").min = deliveryDateStr;
-  document.getElementById("customer").value = savedCustomerInfo.shop || "";
-  document.getElementById("pay-method").value = savedCustomerInfo.method || "";
-  document.getElementById("customer").addEventListener("input", checkEnableConfirmButton);
+  // document.getElementById("customer").value = savedCustomerInfo.shop || "";
+  // document.getElementById("pay-method").value = savedCustomerInfo[0].method || "";
+  // document.getElementById("customer").addEventListener("input", checkEnableConfirmButton);
   document.getElementById("pay-method").addEventListener("change", checkEnableConfirmButton);
 
   updateDeliveryDate();
@@ -247,12 +353,15 @@ function updateSummaryTotal() {
 function checkEnableConfirmButton() {
   const inputs = document.querySelectorAll('input[data-name]');
   const date = document.getElementById("delivery-date").value;
-  const customer = document.getElementById("customer").value;
+  const hasOld = !!document.querySelector('input[name="customer-choice"]:not([value="__NEW__"]):checked');
+  const hasNewRadio = document.getElementById('shop-new')?.checked;
+  const hasNewText = !!document.getElementById('customer-new')?.value.trim();
+  const hasCustomer = hasOld || (hasNewRadio && hasNewText);
   const payMethod = document.getElementById("pay-method").value;
   const btn = document.getElementById("check-order-btn");
 
   const hasPayMethod = payMethod.trim() !== "";
-  const hasCustomer = customer.trim() !== "";
+  // const hasCustomer = customer.trim() !== "";
   const hasOrder = Array.from(inputs).some(input => {
     const amount = parseFloat(input.value);
     return !isNaN(amount) && amount > 0;
@@ -270,7 +379,18 @@ function checkEnableConfirmButton() {
 function confirmOrder() {
   const inputs = document.querySelectorAll('input[data-name]');
   const deliveryDate = document.getElementById("delivery-date").value;
-  const customer = document.getElementById("customer").value;
+  let customer = "";
+  const chosen = document.querySelector('input[name="customer-choice"]:checked');
+  if (chosen) {
+    if (chosen.value === "__NEW__") {
+      customer = document.getElementById("customer-new").value.trim();
+    } else {
+      customer = chosen.value;
+    }
+  } else {
+    // กรณีไม่มี radio (shops<2) ก็ใช้ input เดียว
+    customer = document.getElementById("customer-new").value.trim();
+  }
   const payMethod = document.getElementById("pay-method").value;
 
    // เช็คเงื่อนไขวันที่ก่อน
@@ -320,10 +440,10 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
   const thaiDeliveryDate = formatFullThaiDate(deliveryDate);
   const thaiToday = formatFullThaiDate(new Date());
 
+  const deliveryDayText = getDeliveryDayText(deliveryDate);
+
   const rows = summary.map((item, index) => `
     <tr class="border-b">
-      <td class="px-2 py-1">
-      <img src="${item.image}" alt="Vegetable" class="w-8 h-8 object-contain" /></td>
       <td class="px-2 py-1">${item.nameTh}</td>
       <td class="px-2 text-center py-1">${item.amount.toFixed(2)}</td>
       <td class="px-2 text-center py-1">${item.price}</td>
@@ -332,19 +452,13 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
   `).join('');
 
   container.innerHTML = `
-    <div class="max-w-xl mx-auto bg-white shadow p-2 rounded-lg font-[Kanit] ">
+    <div class="max-w-xl mx-auto bg-white shadow p-2 rounded-lg font-[Kanit] text-lg">
       <h2 class="text-xl font-bold mb-2 text-center"> ตรวจสอบคำสั่งซื้อ</h2>
       
-      <div class="grid grid-cols-1 gap-4  mb-4">
-        <div class="col-span-2 font-thin">สั่งซื้อ: <strong>${thaiToday}</strong> </div>
-        <div>ชื่อลูกค้า: <strong>${customer}</strong> </div>
-        <div class="text-right">วิธีชำระเงิน: <strong>${payMethod}</strong> </div>
-      </div>
-
-      <table class="w-full border mb-4 text-sm">
+      <table class="w-full border mb-4 ">
         <thead class="bg-gray-100">
           <tr class="border-b">
-            <th colspan="2" class="px-2 py-1 text-left">รายการผัก</th>
+            <th class="px-2 py-1 text-left">รายการผัก</th>
             <th class="px-2 py-1 text-center">จำนวน (กก.)</th>
             <th class="px-2 py-1 text-center">ราคา/กก.</th>
             <th class="px-2 py-1 text-right">รวม (บาท)</th>
@@ -353,33 +467,85 @@ function showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount
         <tbody>${rows}</tbody>
         <tfoot class="font-black bg-gray-50 border-t">
           <tr>
-            <td class="px-2 py-1" colspan="2">รวมทั้งหมด</td>
+            <td class="px-2 py-1" >รวม</td>
             <td class="px-2 py-1  text-center">${totalAmount.toFixed(2)}</td>
-            <td></td>
-            <td class="px-2 py-1  text-right">${totalPrice}</td>
+            <td class="px-2 py-1  text-right" colspan="2">${totalPrice}</td>
           </tr>
         </tfoot>
       </table>
-      <div class="grid grid-cols-1 gap-4  mb-4">
-        <div class="text-right">จัดส่ง <strong>${thaiDeliveryDate}</strong></div>
+      <div class="grid grid-cols-1 mb-2">
+        <div>🏪 ชื่อร้าน : <strong>${customer}</strong> </div>
+        <div>💳 วิธีชำระเงิน : <strong>${payMethod}</strong> </div>
+        <div> 
+          🚛 วันที่จัดส่ง : <strong>${thaiDeliveryDate}</strong>
+        </div>
       </div>
-      <div class="bg-yellow-50 border border-yellow-300 rounded px-3 py-2 mb-4 text-yellow-800 ">
-        ⚠️ โปรดตรวจสอบรายการให้ถูกต้องก่อนกดยืนยัน หากต้องการแก้ไข กรุณากดย้อนกลับ
+      <div class="border border-yellow-300 rounded px-3 py-2 ">
+        ⚠️ โปรดตรวจสอบและติ้กยืนยันทุกรายการ
+      <div class="mt-2 space-y-1">
+        <label><input type="checkbox" class="check-confirm w-5 h-5 accent-green-600" onchange="checkAllConfirmed()"> ตรวจสอบ "ชื่อร้าน" (${customer})</label><br>
+        <label><input type="checkbox" class="check-confirm w-5 h-5 accent-green-600" onchange="checkAllConfirmed()"> ตรวจสอบ "วันที่จัดส่ง" (${deliveryDayText})</label><br>
+        <label><input type="checkbox" class="check-confirm w-5 h-5 accent-green-600" onchange="checkAllConfirmed()"> ตรวจสอบ "รายการผักและยอดรวม" (รวม ${totalAmount} กก./ ${totalPrice} บ.)</label>
       </div>
-      <div class="flex justify-center gap-4 mt-6">
+      <div class="text-red-600 text-base">(*ต้องติ้กครบทุกรายการถึงจะยืนยันการสั่งซื้อได้)</div>
+    </div>
+
+      <div class="flex justify-center gap-4 mt-2">
         <button onclick="renderForm()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
           ⬅️ ย้อนกลับ
         </button>
         <button 
+          id="confirm-button"
           onclick='submitOrder(${JSON.stringify(JSON.stringify(summary))}, "${deliveryDate}", "${customer}", "${payMethod}")' 
-          class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 opacity-50 cursor-not-allowed"
+          disabled
         >
           ✅ ยืนยันการสั่งซื้อ
         </button>
+
       </div>
     </div>
   `;
+
+  checkAllConfirmed()
 }
+
+function checkAllConfirmed() {
+  const checkboxes = document.querySelectorAll('.check-confirm');
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  const confirmBtn = document.getElementById("confirm-button");
+  if(allChecked){
+    confirmBtn.classList.remove("opacity-50", "cursor-not-allowed");
+    confirmBtn.disabled = false;
+  }else{
+    confirmBtn.classList.add("opacity-50", "cursor-not-allowed");
+    confirmBtn.disabled = true;
+  }
+
+}
+
+function getDeliveryDayText(deliveryDate) {
+  const today = new Date();
+  const delivery = new Date(deliveryDate);
+
+  // รีเซ็ตเวลาให้เทียบแค่วัน (ตัดเวลาออก)
+  today.setHours(0,0,0,0);
+  delivery.setHours(0,0,0,0);
+
+  const diffTime = delivery - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "📦 จัดส่งวันนี้";
+  } else if (diffDays === 1) {
+    return "📦 จัดส่งพรุ่งนี้";
+  } else if (diffDays > 1) {
+    return `📦 จัดส่งในอีก ${diffDays} วัน`;
+  } else {
+    return "⚠️ วันที่จัดส่งย้อนหลัง กรุณาตรวจสอบ";
+  }
+}
+
 
 
 
@@ -397,11 +563,22 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
 
   console.log("submitOrder payload : ",payload)
 
-  showLoading("all","กำลังส่งคำสั่งซื้อ...");
+  showLoading("all","กำลังส่งคำสั่งซื้อ... กรุณารออย่าออกจากหน้านี้");
   fetch(GOOGLE_SCRIPT_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
-  }).then(res => res.json()).then(() => {
+  })
+  .then(async res => {
+    if (!res.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const text = await res.text(); // อ่านเป็น text ก่อน
+    if (text.trim().toLowerCase() === "error") {
+      throw new Error('Server returned an error');
+    }
+    return JSON.parse(text); // ถ้าไม่ error แล้วค่อย parse เป็น JSON
+  })  
+  .then(() => {
     const thaiDeliveryDate = formatFullThaiDate(deliveryDate);
     const thaiToday = formatFullThaiDate(new Date());
     const totalKg = summary.reduce((sum, item) => sum + item.amount, 0);
@@ -514,6 +691,13 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
       showSuccessToast();
     }, 100);
     
+  }).catch(error => {
+    console.error("ส่งข้อมูลผิดพลาด", error); // log error ไว้ด้วย
+    hideLoading();
+
+    setTimeout(() => {
+      showSuccessToast();
+    }, 100);
   });
 }
 
@@ -525,7 +709,7 @@ function formatFullThaiDate(dateStr) {
   const dayNum = date.getDate();
   const month = months[date.getMonth()];
   const year = date.getFullYear() + 543;
-  return `วัน${day}ที่ ${dayNum} ${month} พ.ศ. ${year}`;
+  return `${day}ที่ ${dayNum} ${month} ${year}`;
 }
 
 function isFarmClosed(dateStr) {
@@ -538,12 +722,13 @@ function updateDeliveryDate() {
   const date = document.getElementById("delivery-date").value;
   const formattedEl = document.getElementById("formatted-date");
   const warningEl = document.getElementById("holiday-warning");
+  const dateTxt = getDeliveryDayText(date)
   if (!date) {
     formattedEl.innerText = "";
     warningEl.innerText = "";
     return;
   }
-  formattedEl.innerText = !isFarmClosed(date) ? `(${formatFullThaiDate(date)})` : "";
+  formattedEl.innerText = !isFarmClosed(date) ? `${dateTxt} (${formatFullThaiDate(date)})` : "";
   warningEl.innerText = isFarmClosed(date) ? "🚫 วันหยุดฟาร์ม กรุณาเลือกวันอื่น" : "";
   checkEnableConfirmButton();
 }
@@ -557,7 +742,7 @@ function updateRealtimeClock() {
   const month = months[now.getMonth()];
   const year = now.getFullYear() + 543;
   const time = now.toLocaleTimeString('th-TH', { hour12: false });
-  const fullText = `วัน${day}ที่ ${date} ${month} พ.ศ. ${year}\n เวลา ${time}`;
+  const fullText = `${day}ที่ ${date} ${month} ${year}\n เวลา ${time}`;
   const element = document.getElementById("realtime-clock");
   if (!element) return; // ✅ ป้องกัน error ถ้า element ไม่เจอ
   element.innerText = fullText;
@@ -618,6 +803,16 @@ function showSuccessToast() {
     setTimeout(() => {
       toast.classList.add("hidden");
     }, 3000);
+  }
+}
+
+function showErrorToast() {
+  const toast = document.getElementById("toast-success");
+  if (toast) {
+    toast.classList.remove("hidden");
+    setTimeout(() => {
+      toast.classList.add("hidden");
+    }, 5000);
   }
 }
 

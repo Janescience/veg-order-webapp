@@ -375,7 +375,18 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
   fetch(GOOGLE_SCRIPT_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
-  }).then(res => res.json()).then(() => {
+  })
+  .then(async res => {
+    if (!res.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const text = await res.text(); // อ่านเป็น text ก่อน
+    if (text.trim().toLowerCase() === "error") {
+      throw new Error('Server returned an error');
+    }
+    return JSON.parse(text); // ถ้าไม่ error แล้วค่อย parse เป็น JSON
+  })
+  .then(() => {
     const thaiDeliveryDate = formatFullThaiDate(deliveryDate);
     const thaiToday = formatFullThaiDate(new Date());
     const totalKg = summary.reduce((sum, item) => sum + item.amount, 0);
