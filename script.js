@@ -296,7 +296,9 @@ function renderForm() {
   if (newInput) {
     newInput.addEventListener('input', () => {
       document.querySelectorAll('input[name="customer-choice"]').forEach(r => r.checked = false);
-      document.getElementById('shop-new').checked = !!newInput.value.trim();
+      if(document.getElementById('shop-new')){
+        document.getElementById('shop-new').checked = !!newInput.value.trim();
+      }
       checkEnableConfirmButton();
     });
   }
@@ -356,7 +358,7 @@ function checkEnableConfirmButton() {
   const hasOld = !!document.querySelector('input[name="customer-choice"]:not([value="__NEW__"]):checked');
   const hasNewRadio = document.getElementById('shop-new')?.checked;
   const hasNewText = !!document.getElementById('customer-new')?.value.trim();
-  const hasCustomer = hasOld || (hasNewRadio && hasNewText);
+  const hasCustomer = hasOld || (hasNewRadio && hasNewText) || (!hasNewRadio && hasNewText);
   const payMethod = document.getElementById("pay-method").value;
   const btn = document.getElementById("check-order-btn");
 
