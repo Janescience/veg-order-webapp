@@ -192,18 +192,12 @@ function renderForm() {
               <option value="เครดิต">💳 เครดิต</option>
             </select>
           </div>
-          <div class="border border-green-600 rounded-lg p-2">
+          <div class="border border-green-600 rounded-lg p-2 col-span-2">
             <label for="delivery-date" class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">
             🚛 เลือกวันที่จัดส่ง
             
             </label>
             <input id="delivery-date" type="date" class="w-full border rounded-md px-4 py-2 shadow-sm " onchange="updateDeliveryDate()" />
-          </div>
-          <div class="bg-red-50 border border-red-200 rounded-lg p-2" id="holidays-section">
-            <div class="font-semibold text-red-700 mb-1">🚫 วันหยุดฟาร์ม</div>
-            <ul class="list-disc list-inside text-red-600 text-sm ">
-              ${Object.entries(farmSchedule).filter(([_, isOpen]) => !isOpen).map(([day]) => `<li>วัน${day}</li>`).join("")}
-            </ul>
           </div>
           <div class="col-span-2 bg-gray-200 border border-gray-200 rounded-lg p-2">
             <span id="formatted-date" class="text-green-700 font-normal"></span>
