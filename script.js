@@ -158,7 +158,7 @@ function renderForm() {
       : "";
     customerSectionHTML = `
       <div id="customer-section" class="border border-green-600 rounded-lg p-2" >
-        <label class="block font-medium mb-1">🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+        <label class="block font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
         <input
           id="customer-new"
           type="text"
