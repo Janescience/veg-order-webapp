@@ -1,6 +1,6 @@
 const vegetables = [];
 let farmSchedule = {};
-let customerName = "B";
+let customerName = "Unknow";
 let userId = null;
 let savedCustomerInfo = [];
 
