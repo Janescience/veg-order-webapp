@@ -1,5 +1,19 @@
 const vegetables = [];
 let farmSchedule = {};
+let savedCustomerInfo = [];
+let userId = null;
+let isAdmin = true;
+
+
+function initCustomerName() {
+  const params = new URLSearchParams(window.location.search);
+  const userIdUrl = params.get("userId");
+  if (userIdUrl) {
+    userId = userIdUrl;
+  }
+  const keyUrl = params.get("key");
+  isAdmin = keyUrl === 'halemfarm-secret-key-1989'
+}
 
 async function fetchVegetables() {
   const res = await fetch(GOOGLE_SCRIPT_URL);
@@ -9,88 +23,222 @@ async function fetchVegetables() {
   renderForm()
 }
 
-function renderForm() {
-  const container = document.getElementById("form-container");
-  container.innerHTML = `
-    <div class="max-w-lg mx-auto p-2 bg-white shadow-md rounded-lg text-gray-800">
-      <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
-        <span>HALEM FARM ADMIN</span>
-      </div>
+async function fetchCustomerInfo() {
+  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&userId=ADMIN`;
+  try {
+    const res = await fetch(url);
+    savedCustomerInfo = await res.json();
+    renderForm();
+  } catch (e) {
+    console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
+    renderForm(); // 💡 ตอนนี้ sections ถูกสร้างแล้ว
+  }
+}
 
-      <div id="customer-section">
-        <div class="grid grid-cols-2 gap-4 mb-2" >
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">🏪 ชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span>
-            </label>
-            <input id="customer" type="text" class="w-full border rounded-md px-4 py-2 shadow-sm" placeholder="กรุณากรอกชื่อร้าน">
-          </div>
-          <div>
-            <label class="block text-gray-700 font-medium mb-1">💳 วิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+function renderForm() {
+  const shops = Array.isArray(savedCustomerInfo) ? savedCustomerInfo : [];
+  let customerSectionHTML = "";
+
+  if (shops.length >= 2) {
+    // 2+ shops → radios + “new” option
+    const shopRadios = savedCustomerInfo.map((c, i) => `
+      <label class="flex items-center space-x-2 mb-1">
+        <input
+          type="radio"
+          name="customer-choice"
+          value="${c.shop}"
+          class="form-radio h-5 w-5 accent-green-600"
+          id="shop-${i}"
+          ${i === 0 ? "checked" : ""} 
+        />
+        <span>${c.shop}</span>
+      </label>
+    `).join("");
+    
+    customerSectionHTML = `
+      <div id="customer-section" class="border border-green-600 rounded-lg p-2">
+        <label class="block font-medium mb-2 bg-gray-100 border border-gray-300 rounded-lg p-1">🏪 เลือกร้านที่เคยสั่ง</label>
+        <div>
+          ${shopRadios}
+          <label class="flex items-center space-x-2 text-gray-500 ">
+            <input
+              type="radio"
+              name="customer-choice"
+              value="__NEW__"
+              class="form-radio h-5 w-5 accent-green-600"
+              id="shop-new"
+            />
+            <span>กรอกร้านใหม่</span>
+          </label>
+        </div>
+        <div id="new-shop-input" class="hidden">
+          <input
+            id="customer-new"
+            type="text"
+            placeholder="กรอกร้านใหม่"
+            class="w-full border rounded-md px-4 py-2 shadow-sm "
+          />
+        </div>
+      </div>
+    `;
+  } else {
+    // 0 or 1 shop → single input
+    const defaultShop = Array.isArray(savedCustomerInfo) && savedCustomerInfo[0]
+      ? savedCustomerInfo[0].shop
+      : "";
+    customerSectionHTML = `
+      <div id="customer-section" class="border border-green-600 rounded-lg p-2" >
+        <label class="block font-medium mb-1">🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+        <input
+          id="customer-new"
+          type="text"
+          placeholder="กรุณากรอกชื่อร้าน"
+          class="w-full border rounded-md px-4 py-2 shadow-sm"
+          value="${defaultShop}"
+        />
+      </div>
+    `;
+  }
+
+  const container = document.getElementById("form-container");
+  if(!isAdmin){
+    container.innerHTML = `
+    <h1>NO ADMIN</h1>
+    `;
+  }else{
+    container.innerHTML = `
+      <div class="max-w-lg mx-auto p-2 bg-white shadow-md rounded-lg text-gray-800">
+        <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
+          <span>HALEM FARM ADMIN</span>
+        </div>
+
+        <div id="customer-section">
+          <div class="grid grid-cols-2 gap-4 mb-2" >
+            ${customerSectionHTML}
+            <div class="border border-green-600 rounded-lg p-2">
+            <label class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1 ">เลือกวิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
             <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
-              <option value="เงินสด" >เงินสด</option>
-              <option value="โอนเงิน">โอนเงิน</option>
-              <option value="เครดิต">เครดิต</option>
+            <option value="" selected>เลือกวิธีชำระเงิน</option>
+              <option value="เงินสด" >💰 เงินสด</option>
+              <option value="โอนเงิน">📱 โอนเงิน</option>
+              <option value="เครดิต">💳 เครดิต</option>
             </select>
           </div>
-          <div class="col-span-2">
-            <label for="delivery-date" class="block text-gray-700 font-medium mb-1">
-            🚛 วันที่จัดส่ง
-            <span id="formatted-date" class="text-green-700 font-normal"></span>
-            <span id="holiday-warning" class="text-red-500 font-normal"></span>
+          <div class="border border-green-600 rounded-lg p-2 col-span-2">
+            <label for="delivery-date" class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">
+            🚛 เลือกวันที่จัดส่ง
+            
             </label>
             <input id="delivery-date" type="date" class="w-full border rounded-md px-4 py-2 shadow-sm " onchange="updateDeliveryDate()" />
           </div>
-        </div>
-      </div>
-      
-
-      <div class="divide-y divide-gray-200 mt-4" id="vegetables-section">
-      <div class="font-medium text-lg">🥬 รายการผัก</div>
-        ${vegetables.map((veg, index) => `
-          <div class="py-3 grid grid-cols-12 gap-2 items-center">
-            <div class="col-span-4">
-              <div class="font-medium">${veg.nameTh}</div>
-              <div class="font-medium">${veg.nameEng}</div>
-            </div>
-            <div class="col-span-3">
-                <input type="number" min="0" step="1" value="${veg.price}" 
-                  class="veg-price-input input-box border rounded-md shadow-sm px-3 py-1 w-full text-right"
-                  data-index="${index}" 
-                  oninput="updatePrice(this, ${index})" 
-                /> 
-              
-            </div>
-            <div class="col-span-3">
-              <input type="number" min="0" step="0.5" data-name="${veg.nameEng}" data-nameth="${veg.nameTh}" data-price="${veg.price}" placeholder="จำนวน (กก.)" class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right" oninput="updateItemTotal(this)" />
-            </div>
-            <div class="col-span-2 text-right font-semibold">
-              <span id="total-${index}">0</span> บาท
-            </div>
+          <div class="col-span-2 bg-gray-200 border border-gray-200 rounded-lg p-2">
+            <span id="formatted-date" class="text-green-700 font-normal"></span>
+            <span id="holiday-warning" class="text-red-500 font-normal"></span>
           </div>
-        `).join('')}
-      </div>
-
-      <div class="mt-4 flex justify-between font-medium text-lg">
-        <div>รวมทั้งหมด:</div>
-        <div class="text-right">
-          <span id="total-amount">0.0</span> กก. /
-          <span id="total-price">0</span> บาท
+          </div>
         </div>
+        
+
+        <div class="divide-y divide-gray-200 mt-4" id="vegetables-section">
+        <div class="font-medium text-lg">🥬 รายการผัก</div>
+          ${vegetables.map((veg, index) => `
+            <div class="py-3 grid grid-cols-12 gap-2 items-center">
+              <div class="col-span-4">
+                <div class="font-medium">${veg.nameEng}</div>
+              </div>
+              <div class="col-span-3">
+                  <input type="number" min="0" step="1" value="${veg.price}" 
+                    class="veg-price-input input-box border rounded-md shadow-sm px-3 py-1 w-full text-right"
+                    data-index="${index}" 
+                    oninput="updatePrice(this, ${index})" 
+                  /> 
+                
+              </div>
+              <div class="col-span-3">
+                <input type="number" min="0" step="0.5" data-name="${veg.nameEng}" data-nameth="${veg.nameTh}" data-price="${veg.price}" placeholder="จำนวน (กก.)" class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right" oninput="updateItemTotal(this)" />
+              </div>
+              <div class="col-span-2 text-right font-semibold">
+                <span id="total-${index}">0</span> บาท
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="mt-4 flex justify-between font-medium text-lg">
+          <div>รวมทั้งหมด:</div>
+          <div class="text-right">
+            <span id="total-amount">0.0</span> กก. /
+            <span id="total-price">0</span> บาท
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <button id="check-order-btn" onclick="confirmOrder()" class="w-full text-white bg-green-600 hover:bg-green-700 py-2 px-4 rounded shadow  " >
+            ✅ ตรวจสอบคำสั่งซื้อ
+          </button>
+        </div>
+
       </div>
+    `;
 
-      <div class="mt-6">
-        <button id="check-order-btn" onclick="confirmOrder()" class="w-full text-white bg-green-600 hover:bg-green-700 py-2 px-4 rounded shadow  " >
-          ✅ ตรวจสอบคำสั่งซื้อ
-        </button>
-      </div>
+    if (shops.length >= 2) {
+      const idx = 0; // radio แรก
+      document.getElementById('pay-method').value = shops[idx].method;
+    } else if (shops[0]?.method) {
+      document.getElementById('pay-method').value = shops[0].method;
+    }
 
-    </div>
-  `;
+    const radios = document.querySelectorAll('input[name="customer-choice"]');
+    const paySelect   = document.getElementById('pay-method');
+    const newInputDiv = document.getElementById('new-shop-input');
+    const newInput    = document.getElementById('customer-new');
 
-  let deliveryDate = new Date();
-  const deliveryDateStr = deliveryDate.toISOString().split("T")[0];
-  document.getElementById("delivery-date").value = deliveryDateStr;
+    radios.forEach(radio => {
+      radio.addEventListener('change', e => {
+        const chosen = e.target.value;
+    
+        if (chosen === "__NEW__") {
+          // New‐shop path
+          newInputDiv.classList.remove('hidden');
+          newInput.value = "";
+          paySelect.value = ""; 
+        } else {
+          // Existing‐shop path
+          newInputDiv.classList.add('hidden');
+          newInput.value = "";
+          // Find the shop object by its name
+          const shopObj = shops.find(s => s.shop === chosen);
+          if (shopObj) {
+            paySelect.value = shopObj.method;
+          } else {
+            paySelect.value = "";
+            console.warn('ไม่มีข้อมูล method สำหรับร้าน:', chosen);
+          }
+        }
+    
+      });
+    });
+
+    // typing in the new-shop input clears any radio
+    if (newInput) {
+      newInput.addEventListener('input', () => {
+        document.querySelectorAll('input[name="customer-choice"]').forEach(r => r.checked = false);
+        if(document.getElementById('shop-new')){
+          document.getElementById('shop-new').checked = !!newInput.value.trim();
+        }
+      });
+    }
+
+    let deliveryDate = new Date();
+    const deliveryDateStr = deliveryDate.toISOString().split("T")[0];
+    document.getElementById("delivery-date").value = deliveryDateStr;
+
+    updateDeliveryDate();
+  }
+  
 }
+
+
 
 function updatePrice(input, index) {
   const newPrice = parseFloat(input.value);
@@ -131,7 +279,19 @@ function updateSummaryTotal() {
 }
 
 function confirmOrder() {
-  const customer = document.getElementById("customer").value;
+  let customer = "";
+  const chosen = document.querySelector('input[name="customer-choice"]:checked');
+  if (chosen) {
+    if (chosen.value === "__NEW__") {
+      customer = document.getElementById("customer-new").value.trim();
+    } else {
+      customer = chosen.value;
+    }
+  } else {
+    // กรณีไม่มี radio (shops<2) ก็ใช้ input เดียว
+    customer = document.getElementById("customer-new").value.trim();
+  }
+  
   if(customer == ""){
     window.alert("ชื่อร้านห้ามว่าง")
   }else{
@@ -511,7 +671,7 @@ function formatFullThaiDate(dateStr) {
   const dayNum = date.getDate();
   const month = months[date.getMonth()];
   const year = date.getFullYear() + 543;
-  return `วัน${day}ที่ ${dayNum} ${month} พ.ศ. ${year}`;
+  return `${day}ที่ ${dayNum} ${month} ${year}`;
 }
 
 function isFarmClosed(dateStr) {
@@ -520,16 +680,39 @@ function isFarmClosed(dateStr) {
   return farmSchedule[dayName] === false;
 }
 
+function getDeliveryDayText(deliveryDate) {
+  const today = new Date();
+  const delivery = new Date(deliveryDate);
+
+  // รีเซ็ตเวลาให้เทียบแค่วัน (ตัดเวลาออก)
+  today.setHours(0,0,0,0);
+  delivery.setHours(0,0,0,0);
+
+  const diffTime = delivery - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return "📦 จัดส่งวันนี้";
+  } else if (diffDays === 1) {
+    return "📦 จัดส่งพรุ่งนี้";
+  } else if (diffDays > 1) {
+    return `📦 จัดส่งในอีก ${diffDays} วัน`;
+  } else {
+    return "⚠️ วันที่จัดส่งย้อนหลัง กรุณาตรวจสอบ";
+  }
+}
+
 function updateDeliveryDate() {
   const date = document.getElementById("delivery-date").value;
   const formattedEl = document.getElementById("formatted-date");
   const warningEl = document.getElementById("holiday-warning");
+  const dateTxt = getDeliveryDayText(date)
   if (!date) {
     formattedEl.innerText = "";
     warningEl.innerText = "";
     return;
   }
-  formattedEl.innerText = !isFarmClosed(date) ? `(${formatFullThaiDate(date)})` : "";
+  formattedEl.innerText = !isFarmClosed(date) ? `${dateTxt} (${formatFullThaiDate(date)})` : "";
   warningEl.innerText = isFarmClosed(date) ? "🚫 วันหยุดฟาร์ม กรุณาเลือกวันอื่น" : "";
 }
 
@@ -591,4 +774,6 @@ function showSuccessToast() {
   }
 }
 
+initCustomerName();
 fetchVegetables();
+fetchCustomerInfo();
