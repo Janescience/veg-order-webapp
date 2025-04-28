@@ -306,26 +306,29 @@ function renderForm() {
   console.log("ตอนนี้ (now):", now.toLocaleString());
   console.log("เวลาตัดรอบ (cutoff):", cutoff.toLocaleString());
 
-  const deliveryDateStr = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
-  console.log("deliveryDateStr:", deliveryDateStr);
-
   if (now.getTime() >= cutoff.getTime()) {
     console.log("เกินเวลาตัดรอบแล้ว ➡️ ข้ามวัน");
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
 
+  const deliveryDateAfterCut = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
+  console.log("deliveryDateAfterCut:", deliveryDateAfterCut);
+
   // ข้ามวันปิดฟาร์ม
-  while (isFarmClosed(deliveryDateStr)) {
+  while (isFarmClosed(deliveryDateAfterCut)) {
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
+
+  const deliveryDateAfterHoliday = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
+  console.log("deliveryDateAfterHoliday:", deliveryDateAfterHoliday);
 
   console.log("deliveryDate y:", deliveryDate.getFullYear());
   console.log("deliveryDate m:", deliveryDate.getMonth() + 1);
   console.log("deliveryDate d:", deliveryDate.getDate());
 
   // ตั้งค่าใน form
-  document.getElementById("delivery-date").value = deliveryDateStr;
-  document.getElementById("delivery-date").min = deliveryDateStr;
+  document.getElementById("delivery-date").value = deliveryDateAfterHoliday;
+  document.getElementById("delivery-date").min = deliveryDateAfterHoliday;
   document.getElementById("pay-method").addEventListener("change", checkEnableConfirmButton);
 
   updateDeliveryDate();
