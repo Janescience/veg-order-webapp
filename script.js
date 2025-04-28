@@ -298,23 +298,34 @@ function renderForm() {
   }
 
   let deliveryDate = new Date();
-  const cutoffHour = 8;
-  const cutoffMinute = 30;
 
-  if (deliveryDate.getHours() > cutoffHour || (deliveryDate.getHours() === cutoffHour && deliveryDate.getMinutes() >= cutoffMinute)) {
+  const now = new Date();
+  const cutoff = new Date();
+  cutoff.setHours(8, 30, 0, 0);
+
+  console.log("ตอนนี้ (now):", now.toLocaleString());
+  console.log("เวลาตัดรอบ (cutoff):", cutoff.toLocaleString());
+
+  const deliveryDateStr = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
+  console.log("deliveryDateStr:", deliveryDateStr);
+
+  if (now.getTime() >= cutoff.getTime()) {
+    console.log("เกินเวลาตัดรอบแล้ว ➡️ ข้ามวัน");
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
 
-  while (isFarmClosed(deliveryDate.toISOString().split("T")[0])) {
+  // ข้ามวันปิดฟาร์ม
+  while (isFarmClosed(deliveryDateStr)) {
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
 
-  const deliveryDateStr = deliveryDate.toLocaleDateString("sv-SE");
+  console.log("deliveryDate y:", deliveryDate.getFullYear());
+  console.log("deliveryDate m:", deliveryDate.getMonth() + 1);
+  console.log("deliveryDate d:", deliveryDate.getDate());
+
+  // ตั้งค่าใน form
   document.getElementById("delivery-date").value = deliveryDateStr;
   document.getElementById("delivery-date").min = deliveryDateStr;
-  // document.getElementById("customer").value = savedCustomerInfo.shop || "";
-  // document.getElementById("pay-method").value = savedCustomerInfo[0].method || "";
-  // document.getElementById("customer").addEventListener("input", checkEnableConfirmButton);
   document.getElementById("pay-method").addEventListener("change", checkEnableConfirmButton);
 
   updateDeliveryDate();
