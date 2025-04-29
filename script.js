@@ -158,7 +158,7 @@ function renderForm() {
       : "";
     customerSectionHTML = `
       <div id="customer-section" class="border border-green-600 rounded-lg p-2" >
-        <label class="block font-medium mb-1">🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
+        <label class="block font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
         <input
           id="customer-new"
           type="text"
@@ -306,30 +306,32 @@ function renderForm() {
   console.log("ตอนนี้ (now):", now.toLocaleString());
   console.log("เวลาตัดรอบ (cutoff):", cutoff.toLocaleString());
 
-  const deliveryDateStr = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
-  console.log("deliveryDateStr:", deliveryDateStr);
-
   if (now.getTime() >= cutoff.getTime()) {
     console.log("เกินเวลาตัดรอบแล้ว ➡️ ข้ามวัน");
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
 
+  const deliveryDateAfterCut = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
+  console.log("deliveryDateAfterCut:", deliveryDateAfterCut);
+
   // ข้ามวันปิดฟาร์ม
-  while (isFarmClosed(deliveryDateStr)) {
+  while (isFarmClosed(deliveryDateAfterCut)) {
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
+
+  const deliveryDateAfterHoliday = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
+  console.log("deliveryDateAfterHoliday:", deliveryDateAfterHoliday);
 
   console.log("deliveryDate y:", deliveryDate.getFullYear());
   console.log("deliveryDate m:", deliveryDate.getMonth() + 1);
   console.log("deliveryDate d:", deliveryDate.getDate());
 
   // ตั้งค่าใน form
-  document.getElementById("delivery-date").value = deliveryDateStr;
-  document.getElementById("delivery-date").min = deliveryDateStr;
+  document.getElementById("delivery-date").value = deliveryDateAfterHoliday;
+  document.getElementById("delivery-date").min = deliveryDateAfterHoliday;
   document.getElementById("pay-method").addEventListener("change", checkEnableConfirmButton);
 
   updateDeliveryDate();
-
 }
 
 function updateItemTotal(input) {
@@ -576,17 +578,8 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     method: 'POST',
     body: JSON.stringify(payload)
   })
-  .then(async res => {
-    if (!res.ok) {
-      throw new Error('Network response was not ok');
-    }
-    const text = await res.text(); // อ่านเป็น text ก่อน
-    if (text.trim().toLowerCase() === "error") {
-      throw new Error('Server returned an error');
-    }
-    return JSON.parse(text); // ถ้าไม่ error แล้วค่อย parse เป็น JSON
-  })  
-  .then(() => {
+
+  setTimeout(() => {
     const thaiDeliveryDate = formatFullThaiDate(deliveryDate);
     const thaiToday = formatFullThaiDate(new Date());
     const totalKg = summary.reduce((sum, item) => sum + item.amount, 0);
@@ -699,14 +692,7 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
       showSuccessToast();
     }, 100);
     
-  }).catch(error => {
-    console.error("ส่งข้อมูลผิดพลาด", error); // log error ไว้ด้วย
-    hideLoading();
-
-    setTimeout(() => {
-      showSuccessToast();
-    }, 100);
-  });
+  },2000);
 }
 
 function formatFullThaiDate(dateStr) {
