@@ -315,9 +315,9 @@ function renderForm() {
   console.log("deliveryDateAfterCut:", deliveryDateAfterCut);
 
   // ข้ามวันปิดฟาร์ม
-  // while (isFarmClosed(deliveryDateAfterCut)) {
-  //   deliveryDate.setDate(deliveryDate.getDate() + 1);
-  // }
+  if (isFarmClosed(deliveryDateAfterCut)) {
+    deliveryDate.setDate(deliveryDate.getDate() + 1);
+  }
 
   const deliveryDateAfterHoliday = deliveryDate.getFullYear() + "-" + ("0" + (deliveryDate.getMonth() + 1)).slice(-2) + "-" + ("0" + deliveryDate.getDate()).slice(-2);
   console.log("deliveryDateAfterHoliday:", deliveryDateAfterHoliday);
