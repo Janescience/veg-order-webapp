@@ -16,46 +16,24 @@ function initCustomerName() {
   }
 }
 
-
-async function fetchCustomerInfo() {
+async function fetchDefaultData() {
   renderForm();
-  // setInterval(updateRealtimeClock, 1000);
-  // updateRealtimeClock();
+  showLoading("vegetables", "กำลังโหลดรายการผัก...");
   showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
-  showLoading("vegetables", "กำลังโหลดรายการผัก...");
-  showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
-  fetchVegetables(); // แล้วค่อยโหลดผัก
 
-  // showLoading("all", "กำลังโหลดข้อมูล...");
-  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&userId=${encodeURIComponent(userId)}`;
-  try {
-    
+  const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
+  try{
     const res = await fetch(url);
-    savedCustomerInfo = await res.json();
-    hideLoading("customer")
+    const data = await res.json();
+
+    vegetables.splice(0, vegetables.length, ...data.vegetables);
+    farmSchedule = data.schedule;
+    savedCustomerInfo = data.customer
+
     renderForm();
-
-  } catch (e) {
+  }catch(e){
     console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
-    hideLoading("customer")
-    hideLoading("vegetables")
-    hideLoading("holidays")
-    renderForm(); // 💡 ตอนนี้ sections ถูกสร้างแล้ว
   }
-}
-
-
-
-async function fetchVegetables() {
-  showLoading("vegetables", "กำลังโหลดรายการผัก...");
-  showLoading("holidays", "กำลังโหลดรายการวันหยุด...");
-  const res = await fetch(GOOGLE_SCRIPT_URL);
-  const data = await res.json();
-  vegetables.splice(0, vegetables.length, ...data.vegetables);
-  farmSchedule = data.schedule;
-  hideLoading("vegetables")
-  hideLoading("holidays")
-  renderForm();
 }
 
 
@@ -187,8 +165,8 @@ function renderForm() {
             <label class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1 ">เลือกวิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span></label>
             <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
             <option value="" selected>เลือกวิธีชำระเงิน</option>
-              <option value="เงินสด" >💰 เงินสด</option>
-              <option value="โอนเงิน">📱 โอนเงิน</option>
+              <option value="เงินสด" >💵 เงินสดธนบัตร</option>
+              <option value="โอนเงิน">📱 เงินสดโอนเงิน</option>
               <option value="เครดิต">💳 เครดิต</option>
             </select>
           </div>
@@ -315,7 +293,7 @@ function renderForm() {
   console.log("deliveryDateAfterCut:", deliveryDateAfterCut);
 
   // ข้ามวันปิดฟาร์ม
-  while (isFarmClosed(deliveryDateAfterCut)) {
+  if (isFarmClosed(deliveryDateAfterCut)) {
     deliveryDate.setDate(deliveryDate.getDate() + 1);
   }
 
@@ -812,4 +790,4 @@ function showErrorToast() {
 
 
 initCustomerName();
-fetchCustomerInfo();
+fetchDefaultData();
