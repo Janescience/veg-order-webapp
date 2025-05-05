@@ -17,9 +17,6 @@ function initCustomerName() {
 
 async function fetchDefaultData() {
   renderForm();
-  showLoading("vegetables", "กำลังโหลดรายการผัก...");
-  showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
-
   const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
   try{
     const res = await fetch(url);
