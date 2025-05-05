@@ -15,23 +15,23 @@ function initCustomerName() {
   isAdmin = keyUrl === 'halemfarm-secret-key-1989'
 }
 
-async function fetchVegetables() {
-  const res = await fetch(GOOGLE_SCRIPT_URL);
-  const data = await res.json();
-  vegetables.splice(0, vegetables.length, ...data.vegetables);
-  farmSchedule = data.schedule;
-  renderForm()
-}
+async function fetchDefaultData() {
+  renderForm();
+  showLoading("vegetables", "กำลังโหลดรายการผัก...");
+  showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
 
-async function fetchCustomerInfo() {
-  const url = `${GOOGLE_SCRIPT_URL}?action=getCustomerInfo&userId=ADMIN`;
-  try {
+  const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
+  try{
     const res = await fetch(url);
-    savedCustomerInfo = await res.json();
+    const data = await res.json();
+
+    vegetables.splice(0, vegetables.length, ...data.vegetables);
+    farmSchedule = data.schedule;
+    savedCustomerInfo = data.customer
+
     renderForm();
-  } catch (e) {
+  }catch(e){
     console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
-    renderForm(); // 💡 ตอนนี้ sections ถูกสร้างแล้ว
   }
 }
 
@@ -775,5 +775,4 @@ function showSuccessToast() {
 }
 
 initCustomerName();
-fetchVegetables();
-fetchCustomerInfo();
+fetchDefaultData();
