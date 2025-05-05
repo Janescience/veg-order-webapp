@@ -16,7 +16,6 @@ function initCustomerName() {
 }
 
 async function fetchDefaultData() {
-  renderForm();
   const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
   try{
     const res = await fetch(url);
