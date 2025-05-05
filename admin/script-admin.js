@@ -139,6 +139,7 @@ function renderForm() {
         <div class="font-medium text-lg">🥬 รายการผัก</div>
           ${vegetables.map((veg, index) => `
             <div class="py-3 grid grid-cols-12 gap-2 items-center">
+            
               <div class="col-span-4">
                 <div class="font-medium">${veg.nameEng}</div>
               </div>
@@ -226,6 +227,9 @@ function renderForm() {
     }
 
     let deliveryDate = new Date();
+    if (isFarmClosed(deliveryDate)) {
+      deliveryDate.setDate(deliveryDate.getDate() + 1);
+    }
     const deliveryDateStr = deliveryDate.toISOString().split("T")[0];
     document.getElementById("delivery-date").value = deliveryDateStr;
 
