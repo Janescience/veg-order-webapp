@@ -26,11 +26,16 @@ async function fetchDefaultData() {
     const res = await fetch(url);
     const data = await res.json();
 
-    vegetables.splice(0, vegetables.length, ...data.vegetables);
-    farmSchedule = data.schedule;
-    savedCustomerInfo = data.customer
+    if(vegetables.length > 0){
+      vegetables.splice(0, vegetables.length, ...data.vegetables);
+      farmSchedule = data.schedule;
+      savedCustomerInfo = data.customer
+  
+      renderForm();
+    }else{
+      renderFormClosed();
+    }
 
-    renderForm();
   }catch(e){
     console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
   }
@@ -80,6 +85,22 @@ function showLoading(section = "all", text = "กำลังโหลดข้�
     const container = document.getElementById("form-container");
     container.innerHTML = spinnerHTML;
   }
+}
+
+function renderFormClosed() {
+  const container = document.getElementById("form-container");
+  container.innerHTML = `
+  <div class="max-w-lg mx-auto p-2 bg-white shadow-lg rounded-lg text-gray-800">
+    <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
+      <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
+      <span>HALEM FARM</span>
+    </div>
+    <div class="text-center text-xl">
+      </br>เนื่องจากสถานการณ์ฟาร์มตอนนี้ผักขาดตลาด  </br> ขออนุญาตปิดรับออร์เดอร์ชั่วคราว </br>
+      จะพร้อมส่งในอีก 1 สัปดาห์ </br>
+      ขออภัยในความไม่สะดวกครับ 🙏🏻👨🏻‍🌾🥬
+    </div>
+  </div>`
 }
 
 function renderForm() {
