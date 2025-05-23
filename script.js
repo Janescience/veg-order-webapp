@@ -25,17 +25,10 @@ async function fetchDefaultData() {
   try{
     const res = await fetch(url);
     const data = await res.json();
-
-    if(vegetables.length > 0){
-      vegetables.splice(0, vegetables.length, ...data.vegetables);
-      farmSchedule = data.schedule;
-      savedCustomerInfo = data.customer
-  
-      renderForm();
-    }else{
-      renderFormClosed();
-    }
-
+    vegetables.splice(0, vegetables.length, ...data.vegetables);
+    farmSchedule = data.schedule;
+    savedCustomerInfo = data.customer
+    renderForm();
   }catch(e){
     console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
   }
