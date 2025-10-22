@@ -685,6 +685,21 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     }, 100);
     
   },2000);
+
+  fetch('https://deliback.vercel.app/api/orders/handle-order', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify(payload)
+     })
+     .then(response => response.json())
+     .then(data => {
+       console.log('Order API response:', data);
+     })
+     .catch(error => {
+       console.error('Order API error:', error);
+     });
 }
 
 function formatFullThaiDate(dateStr) {
