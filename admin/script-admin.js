@@ -476,6 +476,21 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     order: summary
   };
 
+  fetch('https://deliback.vercel.app/api/orders/handle-order', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify(payload)
+     })
+     .then(response => response.json())
+     .then(data => {
+       console.log('Order API response:', data);
+     })
+     .catch(error => {
+       console.error('Order API error:', error);
+     });
+
   fetch(GOOGLE_SCRIPT_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -605,6 +620,8 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
     
   });
+
+  
 }
 
 function formatFullThaiDate(dateStr) {
