@@ -27,11 +27,15 @@ async function fetchDefaultData() {
     const vegetablesData = await vegetablesRes.json();
     vegetables.splice(0, vegetables.length, ...vegetablesData);
 
-    // Fetch customer data and schedule from existing API
+    // Fetch farm schedule from new API
+    const scheduleRes = await fetch('https://deliback.vercel.app/api/holidays/schedule');
+    const scheduleData = await scheduleRes.json();
+    farmSchedule = scheduleData.schedule;
+
+    // Fetch customer data from existing API
     const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
     const res = await fetch(url);
     const data = await res.json();
-    farmSchedule = data.schedule;
     savedCustomerInfo = data.customer;
 
     renderForm();
