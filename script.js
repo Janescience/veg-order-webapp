@@ -21,16 +21,22 @@ async function fetchDefaultData() {
   showLoading("vegetables", "กำลังโหลดรายการผัก...");
   showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
 
-  const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
-  try{
+  try {
+    // Fetch vegetables from new API
+    const vegetablesRes = await fetch('https://deliback.vercel.app/api/vegetables/available');
+    const vegetablesData = await vegetablesRes.json();
+    vegetables.splice(0, vegetables.length, ...vegetablesData);
+
+    // Fetch customer data and schedule from existing API
+    const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
     const res = await fetch(url);
     const data = await res.json();
-    vegetables.splice(0, vegetables.length, ...data.vegetables);
     farmSchedule = data.schedule;
-    savedCustomerInfo = data.customer
+    savedCustomerInfo = data.customer;
+
     renderForm();
-  }catch(e){
-    console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
+  } catch(e) {
+    console.error("ไม่สามารถดึงข้อมูลได้:", e);
   }
 }
 
