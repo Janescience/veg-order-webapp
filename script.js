@@ -575,127 +575,9 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
   console.log("submitOrder payload : ",payload)
 
   showLoading("all","กำลังส่งคำสั่งซื้อ... กรุณารออย่าออกจากหน้านี้");
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  })
-
-  setTimeout(() => {
-    const thaiDeliveryDate = formatFullThaiDate(deliveryDate);
-    const thaiToday = formatFullThaiDate(new Date());
-    const totalKg = summary.reduce((sum, item) => sum + item.amount, 0);
-    const totalBaht = summary.reduce((sum, item) => sum + item.subtotal, 0);
-    const thaiText = convertNumberToThaiText(totalBaht);
-    const vat = (totalBaht * 7) / 107; // VAT ที่รวมอยู่แล้ว
-    const net = totalBaht;
-    const itemsHtml = summary.map(item => `
-      <tr class="border-t text-sm">
-        <td class="px-2 py-1">${item.nameTh} (${item.name})</td>
-        <td class="px-2 py-1 text-center">${item.amount.toFixed(2)}</td>
-        <td class="px-2 py-1 text-right">${item.price}</td>
-        <td class="px-2 py-1 text-right">${item.subtotal}</td>
-      </tr>
-    `).join('');
-    const html = `
-      <div class="max-w-md mx-auto bg-white border rounded-lg shadow p-1 text-sm text-gray-800">
-        <h2 class="text-2xl font-bold text-center mb-2 mt-1">ใบสั่งซื้อ</h2>
-          <div class="flex items-center gap-2 text-xl font-black justify-center tracking-tight mb-2">
-            <img src="logo.png" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
-            <span>HALEM FARM</span>
-          </div>
-
-          <div class="grid grid-cols-1 gap-2 mb-2 text-sm">
-            <div>
-              <div><strong>สั่งโดย:</strong> ${customerName}</div>
-              <div><strong>ชื่อลูกค้า:</strong> ${customer}</div>
-              <div><strong>วิธีชำระเงิน:</strong> ${payMethod}</div>
-              <div><strong>วันที่สั่งซื้อ:</strong> ${thaiToday}</div>
-              <div><strong>วันที่จัดส่ง:</strong> ${thaiDeliveryDate}</div>
-            </div>
-            <div class="text-right">
-            </div>
-          </div>
-
-          <table class="w-full border border-gray-300 mb-2 text-sm">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="border px-2 py-1">ลำดับ</th>
-                <th class="border px-2 py-1 text-left">รายการ</th>
-                <th class="border px-2 py-1 text-center">จำนวน (กก.)</th>
-                <th class="border px-2 py-1 text-right">ราคา/กก.</th>
-                <th class="border px-2 py-1 text-right">รวม (บาท)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${summary.map((item, i) => `
-                <tr>
-                  <td class="border px-2 py-1 text-center">${i + 1}</td>
-                  <td class="border px-2 py-1">${item.nameTh || item.name}</td>
-                  <td class="border px-2 py-1 text-center">${item.amount.toFixed(2)}</td>
-                  <td class="border px-2 py-1 text-right">${item.price}</td>
-                  <td class="border px-2 py-1 text-right">${item.subtotal}</td>
-                </tr>
-              `).join("")}
-              <tr class="border-t font-semibold bg-gray-50">
-                <td colspan="2" class="px-2 py-2 text-left">รวมทั้งหมด</td>
-                <td class="px-2 py-2 text-center">${totalKg.toFixed(2)}</td>
-                <td class="px-2 py-2 text-right">-</td>
-                <td class="px-2 py-2 text-right">${totalBaht}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <table class="w-full border border-gray-300 mt-2 text-sm">
-            <tbody>
-              <tr class="border-t font-semibold">
-                <td class="px-2 py-2 text-left" colspan="3">
-                  ( ${thaiText} )
-                </td>
-                <td class="px-2 py-2 text-right">รวมเป็นเงิน</td>
-                <td class="px-2 py-2 text-right">${(totalBaht).toFixed(2)}</td>
-              </tr>
-              <tr class="font-medium">
-                <td colspan="3"></td>
-                <td class="px-2 py-2 text-right">ภาษีมูลค่าเพิ่ม 7%</td>
-                <td class="px-2 py-2 text-right">0.00</td>
-              </tr>
-              <tr class="font-bold bg-gray-50 border-t">
-                <td colspan="3"></td>
-                <td class="px-2 py-2 text-right">ยอดสุทธิ</td>
-                <td class="px-2 py-2 text-right">${totalBaht.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="text-xs mt-2 text-gray-700 leading-relaxed">
-            <div class="font-semibold">เงื่อนไขการชำระเงิน</div>
-            ${payMethod === 'โอนเงิน'
-              ? `กรุณาโอนชำระเงินภายใน 3 วัน นับจากวันจัดส่งสินค้า<br/>
-                เข้าบัญชี <strong>ธนาคารกสิกรไทย</strong><br/>
-                เลขที่บัญชี: <strong>113-8-48085-9</strong><br/>
-                ชื่อบัญชี: <strong>นายฮาเล็ม เจะมาริกัน</strong>`
-              : payMethod === 'เครดิต' ? `กรุณาชำระเงินหลังจากวางบิลภายใน 7 วัน` : `กรุณาชำระเงินภายในวันจัดส่งสินค้า`}
-          </div>
-
-          <div class="grid grid-cols-2 gap-6 text-sm text-gray-600 mt-10 text-center">
-            <div>
-              <div class="border-t border-gray-400 pt-2">ลงชื่อฟาร์ม</div>
-            </div>
-            <div>
-              <div class="border-t border-gray-400 pt-2">ลงชื่อลูกค้า</div>
-            </div>
-          </div>
-        <div class="text-center mt-4">สั่งซื้อเรียบร้อยแล้ว ✨ ขอบคุณที่ใช้บริการครับ 🙏</div>
-      </div>
-    `;
-    document.getElementById("form-container").innerHTML = html;
-    setTimeout(() => {
-      showSuccessToast();
-    }, 100);
-    
-  },2000);
 
   fetch('https://deliback.vercel.app/api/orders/handle-order', {
+  // fetch('http://localhost:3000/api/orders/handle-order', {
        method: 'POST',
        headers: {
          'Content-Type': 'application/json'
@@ -705,9 +587,115 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
      .then(response => response.json())
      .then(data => {
        console.log('Order API response:', data);
+
+       // Success: Show order receipt
+       const thaiDeliveryDate = formatFullThaiDate(deliveryDate);
+       const thaiToday = formatFullThaiDate(new Date());
+       const totalKg = summary.reduce((sum, item) => sum + item.amount, 0);
+       const totalBaht = summary.reduce((sum, item) => sum + item.subtotal, 0);
+       const thaiText = convertNumberToThaiText(totalBaht);
+
+       const html = `
+         <div class="max-w-md mx-auto bg-white border rounded-lg shadow p-1 text-sm text-gray-800">
+           <h2 class="text-2xl font-bold text-center mb-2 mt-1">ใบสั่งซื้อ</h2>
+             <div class="flex items-center gap-2 text-xl font-black justify-center tracking-tight mb-2">
+               <img src="logo.png" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
+               <span>HALEM FARM</span>
+             </div>
+
+             <div class="grid grid-cols-1 gap-2 mb-2 text-sm">
+               <div>
+                 <div><strong>สั่งโดย:</strong> ${customerName}</div>
+                 <div><strong>ชื่อลูกค้า:</strong> ${customer}</div>
+                 <div><strong>วิธีชำระเงิน:</strong> ${payMethod}</div>
+                 <div><strong>วันที่สั่งซื้อ:</strong> ${thaiToday}</div>
+                 <div><strong>วันที่จัดส่ง:</strong> ${thaiDeliveryDate}</div>
+               </div>
+               <div class="text-right">
+               </div>
+             </div>
+
+             <table class="w-full border border-gray-300 mb-2 text-sm">
+               <thead class="bg-gray-100">
+                 <tr>
+                   <th class="border px-2 py-1">ลำดับ</th>
+                   <th class="border px-2 py-1 text-left">รายการ</th>
+                   <th class="border px-2 py-1 text-center">จำนวน (กก.)</th>
+                   <th class="border px-2 py-1 text-right">ราคา/กก.</th>
+                   <th class="border px-2 py-1 text-right">รวม (บาท)</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 ${summary.map((item, i) => `
+                   <tr>
+                     <td class="border px-2 py-1 text-center">${i + 1}</td>
+                     <td class="border px-2 py-1">${item.nameTh || item.name}</td>
+                     <td class="border px-2 py-1 text-center">${item.amount.toFixed(2)}</td>
+                     <td class="border px-2 py-1 text-right">${item.price}</td>
+                     <td class="border px-2 py-1 text-right">${item.subtotal}</td>
+                   </tr>
+                 `).join("")}
+                 <tr class="border-t font-semibold bg-gray-50">
+                   <td colspan="2" class="px-2 py-2 text-left">รวมทั้งหมด</td>
+                   <td class="px-2 py-2 text-center">${totalKg.toFixed(2)}</td>
+                   <td class="px-2 py-2 text-right">-</td>
+                   <td class="px-2 py-2 text-right">${totalBaht}</td>
+                 </tr>
+               </tbody>
+             </table>
+
+             <table class="w-full border border-gray-300 mt-2 text-sm">
+               <tbody>
+                 <tr class="border-t font-semibold">
+                   <td class="px-2 py-2 text-left" colspan="3">
+                     ( ${thaiText} )
+                   </td>
+                   <td class="px-2 py-2 text-right">รวมเป็นเงิน</td>
+                   <td class="px-2 py-2 text-right">${(totalBaht).toFixed(2)}</td>
+                 </tr>
+                 <tr class="font-medium">
+                   <td colspan="3"></td>
+                   <td class="px-2 py-2 text-right">ภาษีมูลค่าเพิ่ม 7%</td>
+                   <td class="px-2 py-2 text-right">0.00</td>
+                 </tr>
+                 <tr class="font-bold bg-gray-50 border-t">
+                   <td colspan="3"></td>
+                   <td class="px-2 py-2 text-right">ยอดสุทธิ</td>
+                   <td class="px-2 py-2 text-right">${totalBaht.toFixed(2)}</td>
+                 </tr>
+               </tbody>
+             </table>
+
+             <div class="text-xs mt-2 text-gray-700 leading-relaxed">
+               <div class="font-semibold">เงื่อนไขการชำระเงิน</div>
+               ${payMethod === 'โอนเงิน'
+                 ? `กรุณาโอนชำระเงินภายใน 3 วัน นับจากวันจัดส่งสินค้า<br/>
+                   เข้าบัญชี <strong>ธนาคารกสิกรไทย</strong><br/>
+                   เลขที่บัญชี: <strong>113-8-48085-9</strong><br/>
+                   ชื่อบัญชี: <strong>นายฮาเล็ม เจะมาริกัน</strong>`
+                 : payMethod === 'เครดิต' ? `กรุณาชำระเงินหลังจากวางบิลภายใน 7 วัน` : `กรุณาชำระเงินภายในวันจัดส่งสินค้า`}
+             </div>
+
+             <div class="grid grid-cols-2 gap-6 text-sm text-gray-600 mt-10 text-center">
+               <div>
+                 <div class="border-t border-gray-400 pt-2">ลงชื่อฟาร์ม</div>
+               </div>
+               <div>
+                 <div class="border-t border-gray-400 pt-2">ลงชื่อลูกค้า</div>
+               </div>
+             </div>
+           <div class="text-center mt-4">สั่งซื้อเรียบร้อยแล้ว ✨ ขอบคุณที่ใช้บริการครับ 🙏</div>
+         </div>
+       `;
+       document.getElementById("form-container").innerHTML = html;
+       setTimeout(() => {
+         showSuccessToast();
+       }, 100);
      })
      .catch(error => {
        console.error('Order API error:', error);
+       showErrorToast();
+       hideLoading();
      });
 }
 
