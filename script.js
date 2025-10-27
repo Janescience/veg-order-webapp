@@ -32,11 +32,10 @@ async function fetchDefaultData() {
     const scheduleData = await scheduleRes.json();
     farmSchedule = scheduleData.schedule;
 
-    // Fetch customer data from existing API
-    const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    savedCustomerInfo = data.customer;
+    // Fetch customer data from new API
+    const customerRes = await fetch(`https://deliback.vercel.app/api/user-order-history?userId=${encodeURIComponent(userId)}`);
+    const customerData = await customerRes.json();
+    savedCustomerInfo = customerData.customer;
 
     renderForm();
   } catch(e) {
