@@ -21,16 +21,25 @@ async function fetchDefaultData() {
   showLoading("vegetables", "กำลังโหลดรายการผัก...");
   showLoading("customer", "กำลังโหลดข้อมูลลูกค้า...");
 
-  const url = `${GOOGLE_SCRIPT_URL}?userId=${encodeURIComponent(userId)}`;
-  try{
-    const res = await fetch(url);
-    const data = await res.json();
-    vegetables.splice(0, vegetables.length, ...data.vegetables);
-    farmSchedule = data.schedule;
-    savedCustomerInfo = data.customer
+  try {
+    // Fetch vegetables from new API
+    const vegetablesRes = await fetch('https://deliback.vercel.app/api/vegetables/available');
+    const vegetablesData = await vegetablesRes.json();
+    vegetables.splice(0, vegetables.length, ...vegetablesData);
+
+    // Fetch farm schedule from new API
+    const scheduleRes = await fetch('https://deliback.vercel.app/api/holidays/schedule');
+    const scheduleData = await scheduleRes.json();
+    farmSchedule = scheduleData.schedule;
+
+    // Fetch customer data from new API
+    const customerRes = await fetch(`https://deliback.vercel.app/api/user-order-history?userId=${encodeURIComponent(userId)}`);
+    const customerData = await customerRes.json();
+    savedCustomerInfo = customerData.customer;
+
     renderForm();
-  }catch(e){
-    console.error("ไม่สามารถดึงข้อมูลลูกค้าได้:", e);
+  } catch(e) {
+    console.error("ไม่สามารถดึงข้อมูลได้:", e);
   }
 }
 
@@ -686,7 +695,7 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     
   },2000);
 
-   fetch('https://deliback.vercel.app/api/orders/handle-order', {
+  fetch('https://deliback.vercel.app/api/orders/handle-order', {
        method: 'POST',
        headers: {
          'Content-Type': 'application/json'
