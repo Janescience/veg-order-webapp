@@ -1,14 +1,23 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <!-- ใช้ Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
-  <title>Halem Farm - Orders</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Halem Farm - ระบบสั่งซื้อผักออร์แกนิคออนไลน์">
+  <meta name="keywords" content="ผักออร์แกนิค, ฟาร์ม, สั่งซื้อออนไลน์, ผักสด">
+  <meta name="author" content="Halem Farm">
+
+  <title>Halem Farm - ระบบสั่งซื้อผักออร์แกนิค</title>
   <link rel="icon" href="logo.png" type="image/png">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="toast-success" class="hidden fixed inset-0 flex items-center justify-center z-50">
@@ -31,7 +40,7 @@
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M5 13l4 4L19 7"/>
       </svg>
-      <p class="text-green-700 font-semibold text-lg text-center">
+      <p class="text-red-700 font-semibold text-lg text-center">
         เกิดข้อผิดพลาด<br/>กรุณาติดต่อผู้ดูแลระบบ ขออภัยในความไม่สะดวกครับ 🙏
       </p>
     </div>
@@ -48,9 +57,14 @@
       animation: fadeInOut 2s ease-in-out forwards;
     }
   </style>
-  <div class="">
-    <div id="form-container">กำลังโหลดเมนู...</div>
-  </div>
+  <!-- Main Application Container -->
+  <main class="min-h-screen">
+    <div id="form-container" class="flex items-center justify-center py-8">
+      <div class="animate-pulse text-gray-500">กำลังโหลดระบบ...</div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
   <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
