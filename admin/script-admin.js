@@ -620,6 +620,8 @@ function submitOrder(summaryJson, deliveryDate, customer, payMethod) {
     submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
     
   });
+
+  
 }
 
 function formatFullThaiDate(dateStr) {
