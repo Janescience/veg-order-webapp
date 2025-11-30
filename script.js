@@ -653,24 +653,56 @@ const PageRenderer = {
   },
 
   setDefaultDeliveryDate() {
-    let deliveryDate = new Date();
+    // ใช้เวลาไทย (UTC+7)
     const now = new Date();
-    const cutoff = new Date();
+    const thaiTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // เพิ่ม 7 ชั่วโมง
+
+    // สร้าง cutoff time สำหรับวันนี้ในเวลาไทย
+    const cutoff = new Date(thaiTime);
     cutoff.setHours(APP_CONFIG.ORDER_CUTOFF_TIME.HOUR, APP_CONFIG.ORDER_CUTOFF_TIME.MINUTE, 0, 0);
 
-    if (now.getTime() >= cutoff.getTime()) {
+    // ตั้งวันที่จัดส่งเริ่มต้น
+    let deliveryDate = new Date(thaiTime);
+
+    // DEBUG: แสดงข้อมูลเวลาต่างๆ
+    console.log('=== DEBUG: setDefaultDeliveryDate ===');
+    console.log('Browser Time (now):', now.toString());
+    console.log('Thai Time (UTC+7):', thaiTime.toString());
+    console.log('Thai Date:', thaiTime.getDate());
+    console.log('Thai Day:', THAI_LOCALE.DAYS[thaiTime.getDay()]);
+    console.log('Thai Hours:', thaiTime.getHours());
+    console.log('Thai Minutes:', thaiTime.getMinutes());
+    console.log('Cutoff Time:', cutoff.toString());
+    console.log('Is past cutoff?:', thaiTime.getTime() >= cutoff.getTime());
+
+    // หากเลยเวลา cutoff แล้ว ให้จัดส่งวันถัดไป
+    if (thaiTime.getTime() >= cutoff.getTime()) {
       deliveryDate.setDate(deliveryDate.getDate() + 1);
+      console.log('Past cutoff - delivery moved to next day');
     }
 
-    const deliveryDateStr = deliveryDate.toISOString().split('T')[0];
+    // แปลงเป็น local date string สำหรับ input date
+    let deliveryDateStr = deliveryDate.getFullYear() + '-' +
+                         String(deliveryDate.getMonth() + 1).padStart(2, '0') + '-' +
+                         String(deliveryDate.getDate()).padStart(2, '0');
 
+    console.log('Initial delivery date:', deliveryDateStr);
+
+    // ตรวจสอบว่าฟาร์มปิดหรือไม่
     if (Utils.isFarmClosed(deliveryDateStr)) {
       deliveryDate.setDate(deliveryDate.getDate() + 1);
+      deliveryDateStr = deliveryDate.getFullYear() + '-' +
+                       String(deliveryDate.getMonth() + 1).padStart(2, '0') + '-' +
+                       String(deliveryDate.getDate()).padStart(2, '0');
+      console.log('Farm closed - delivery moved to:', deliveryDateStr);
     }
 
-    const finalDateStr = deliveryDate.toISOString().split('T')[0];
-    document.getElementById("delivery-date").value = finalDateStr;
-    document.getElementById("delivery-date").min = finalDateStr;
+    console.log('Final delivery date:', deliveryDateStr);
+    console.log('Final delivery day:', THAI_LOCALE.DAYS[deliveryDate.getDay()]);
+    console.log('=====================================');
+
+    document.getElementById("delivery-date").value = deliveryDateStr;
+    document.getElementById("delivery-date").min = deliveryDateStr;
 
     // Update delivery date display immediately
     updateDeliveryDate();
