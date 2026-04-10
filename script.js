@@ -784,17 +784,32 @@ const PageRenderer = {
 // ==================================================
 const App = {
   async init() {
-    this.initCustomerData();
+    await this.initCustomerData();
     await this.fetchInitialData();
   },
 
-  initCustomerData() {
-    const params = Utils.getUrlParams();
-    const nameFromUrl = params.get("customer");
-    const userIdFromUrl = params.get("userId");
+  async initCustomerData() {
+    try {
+      await liff.init({ liffId: "2009768178-uR8RLijl" });
 
-    if (nameFromUrl) AppState.customerName = decodeURIComponent(nameFromUrl);
-    if (userIdFromUrl) AppState.userId = userIdFromUrl;
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      const profile = await liff.getProfile();
+      AppState.customerName = profile.displayName;
+      AppState.userId = profile.userId;
+
+    } catch (error) {
+      console.error("LIFF init failed:", error);
+      // fallback to URL params
+      const params = Utils.getUrlParams();
+      const nameFromUrl = params.get("customer");
+      const userIdFromUrl = params.get("userId");
+      if (nameFromUrl) AppState.customerName = decodeURIComponent(nameFromUrl);
+      if (userIdFromUrl) AppState.userId = userIdFromUrl;
+    }
   },
 
   async fetchInitialData() {
