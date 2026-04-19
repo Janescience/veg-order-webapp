@@ -784,7 +784,7 @@ const PageRenderer = {
 // ==================================================
 const App = {
   async init() {
-    this.initCustomerData();
+    await this.initCustomerData();
     await this.fetchInitialData();
   },
 
