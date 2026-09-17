@@ -97,6 +97,14 @@ const Utils = {
       .replace(/'/g, "&#39;");
   },
 
+  // Vegetable photos are up to 1.3MB; ask the backend for a thumbnail instead
+  thumbnail(url, width = 96) {
+    if (!url) return url;
+    const origin = getApiBaseUrl().replace(/\/api\/?$/, "");
+    const absolute = url.startsWith("http") ? url : `${origin}${url}`;
+    return `${origin}/_next/image?url=${encodeURIComponent(absolute)}&w=${width}&q=70`;
+  },
+
   formatMoney(amount) {
     return Number(amount).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   },
@@ -346,12 +354,24 @@ const UI = {
     `;
   },
 
+  // Fall back to the original photo, then to an icon, if a thumbnail fails
+  handleImageError(img) {
+    const original = img.dataset.original;
+    if (original && img.src !== original) {
+      img.src = original;
+      return;
+    }
+    img.outerHTML = this.icon("leaf", "w-7 h-7 text-gray-300");
+  },
+
   generateVegetablesSection() {
     const esc = Utils.escapeHtml;
     return AppState.vegetables.map((veg, index) => `
       <div class="flex items-center gap-3 py-3">
         <div class="w-16 h-16 shrink-0 rounded-2xl bg-stone-50 flex items-center justify-center overflow-hidden">
-          <img src="${esc(veg.image)}" alt="${esc(veg.nameTh)}" loading="lazy" decoding="async" width="48" height="48" class="w-12 h-12 object-contain" />
+          <img src="${esc(Utils.thumbnail(veg.image))}" data-original="${esc(veg.image)}" alt="${esc(veg.nameTh)}"
+               loading="lazy" decoding="async" width="48" height="48" class="w-12 h-12 object-contain"
+               onerror="UI.handleImageError(this)" />
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-lg text-gray-900 font-normal leading-snug truncate">${esc(veg.nameTh)}</div>
@@ -470,6 +490,14 @@ const OrderManager = {
     const pending = AppState.pendingOrder;
     if (!pending) return;
 
+    const button = document.getElementById("confirm-button");
+    const buttonContent = button?.innerHTML;
+    if (button) {
+      button.disabled = true;
+      button.classList.add("opacity-60");
+      button.innerHTML = `${UI.icon("loader-circle", "w-5 h-5 animate-spin")} กำลังส่งคำสั่งซื้อ...`;
+    }
+
     try {
       const { summary, customer, payMethod, deliveryDate } = pending;
 
@@ -481,20 +509,21 @@ const OrderManager = {
         order: summary
       };
 
-      console.log("submitOrder payload:", payload);
-
-      UI.showLoading("all", "กำลังส่งคำสั่งซื้อ... กรุณารออย่าออกจากหน้านี้");
-
       const data = await ApiService.submitOrder(payload);
       console.log('Order API response:', data);
 
+      PageRenderer.closeConfirmSheet();
       this.showOrderReceipt({ ...pending, orderId: data.orderId, isReplacement: data.isReplacement, orderedAt: new Date() });
 
     } catch (error) {
       console.error('Order API error:', error);
       UI.showErrorToast();
-      // Go back to the confirm page so the customer can retry without losing the order
-      PageRenderer.showConfirmPage(pending);
+      // Leave the sheet open so the customer can try again
+      if (button) {
+        button.disabled = false;
+        button.classList.remove("opacity-60");
+        button.innerHTML = buttonContent;
+      }
     }
   },
 
@@ -996,20 +1025,22 @@ const PageRenderer = {
     updateDeliveryDate();
   },
 
-  showConfirmPage(order) {
+  // Confirmation happens in a bottom sheet so the form stays behind it
+  showConfirmSheet(order) {
     AppState.pendingOrder = order;
     const { summary, customer, payMethod, deliveryDate } = order;
     const totalAmount = summary.reduce((sum, item) => sum + item.amount, 0);
     const totalPrice = summary.reduce((sum, item) => sum + item.subtotal, 0);
-    const container = document.getElementById("form-container");
     const esc = Utils.escapeHtml;
     const money = Utils.formatMoney;
     const deliveryDayText = Utils.getDeliveryDayText(deliveryDate);
 
+    this.closeConfirmSheet();
+
     const infoRow = (icon, label, value) => `
-      <div class="flex items-center gap-3 py-2">
-        <div class="w-10 h-10 shrink-0 rounded-full bg-stone-100 text-gray-600 flex items-center justify-center">
-          ${UI.icon(icon, "w-5 h-5")}
+      <div class="flex items-center gap-3 py-1.5">
+        <div class="w-9 h-9 shrink-0 rounded-full bg-stone-100 text-gray-600 flex items-center justify-center">
+          ${UI.icon(icon, "w-4 h-4")}
         </div>
         <div class="leading-snug min-w-0">
           <div class="text-sm text-gray-600">${label}</div>
@@ -1018,37 +1049,35 @@ const PageRenderer = {
       </div>
     `;
 
-    const checkRow = (text) => `
-      <label class="flex items-center gap-3 rounded-2xl bg-stone-100 px-4 py-3.5 cursor-pointer">
-        <input type="checkbox" class="check-confirm w-6 h-6 shrink-0 accent-green-600" onchange="checkAllConfirmed()">
-        <span class="text-base text-gray-800">${text}</span>
-      </label>
-    `;
-
-    container.innerHTML = `
-      <div class="w-full max-w-lg mx-auto px-3 pt-3 pb-40 space-y-3 animate-fade-in">
-        <div class="text-center">
-          <div class="text-xl text-gray-900 font-normal">ตรวจสอบคำสั่งซื้อ</div>
-          <div class="text-base text-gray-600">โปรดตรวจสอบข้อมูลก่อนยืนยัน</div>
+    const sheet = document.createElement("div");
+    sheet.id = "confirm-sheet";
+    sheet.className = "fixed inset-0 z-50 flex items-end";
+    sheet.innerHTML = `
+      <div class="absolute inset-0 bg-black/40 animate-fade-in" data-close="1"></div>
+      <div class="relative w-full max-w-lg mx-auto bg-white rounded-t-3xl shadow-float-lg animate-slide-up max-h-[88vh] flex flex-col">
+        <div class="pt-3 pb-1 flex justify-center shrink-0" data-close="1">
+          <div class="w-10 h-1.5 rounded-full bg-stone-300"></div>
         </div>
 
-        <section class="bg-white rounded-3xl shadow-float p-4">
+        <div class="px-4 pb-2 text-center shrink-0">
+          <div class="text-xl text-gray-900 font-normal">ตรวจสอบคำสั่งซื้อ</div>
+          <div class="text-sm text-gray-600">โปรดตรวจสอบข้อมูลก่อนยืนยัน</div>
+        </div>
+
+        <div class="px-4 overflow-y-auto">
           ${infoRow("store", "ชื่อร้าน", esc(customer))}
           ${infoRow("wallet", "วิธีชำระเงิน", esc(payMethod))}
-          <div class="mt-2 flex items-center gap-3 rounded-2xl bg-green-50 p-3">
-            <div class="w-10 h-10 shrink-0 rounded-full bg-green-600 text-white flex items-center justify-center">
-              ${UI.icon("truck", "w-5 h-5")}
+          <div class="mt-1 flex items-center gap-3 rounded-2xl bg-green-50 p-3">
+            <div class="w-9 h-9 shrink-0 rounded-full bg-green-600 text-white flex items-center justify-center">
+              ${UI.icon("truck", "w-4 h-4")}
             </div>
             <div class="leading-snug min-w-0">
               <div class="text-sm text-green-800">วันที่จัดส่ง · ${deliveryDayText}</div>
               <div class="text-lg text-green-900 font-medium">${Utils.formatThaiDate(deliveryDate)}</div>
             </div>
           </div>
-        </section>
 
-        <section class="bg-white rounded-3xl shadow-float p-4">
-          ${UI.sectionLabel("leaf", "รายการผัก")}
-          <div class="divide-y divide-stone-100">
+          <div class="divide-y divide-stone-100 mt-2">
             ${summary.map((item) => `
               <div class="flex justify-between gap-4 py-2.5">
                 <div class="min-w-0">
@@ -1059,39 +1088,36 @@ const PageRenderer = {
               </div>
             `).join('')}
           </div>
+
           <div class="flex justify-between items-baseline mt-2 pt-3 border-t border-stone-200">
             <span class="text-base text-gray-700">รวม ${totalAmount.toFixed(2)} กก.</span>
             <span class="text-2xl text-green-700 font-medium tabular-nums">${money(totalPrice)} บ.</span>
           </div>
-        </section>
+        </div>
 
-        <section class="bg-white rounded-3xl shadow-float p-4 space-y-2">
-          ${UI.sectionLabel("list-checks", "ติ๊กยืนยันทุกรายการ")}
-          ${checkRow(`ชื่อร้านถูกต้อง (${esc(customer)})`)}
-          ${checkRow(`วันที่จัดส่งถูกต้อง (${deliveryDayText})`)}
-          ${checkRow(`รายการผักและยอดรวมถูกต้อง (${totalAmount.toFixed(2)} กก. / ${money(totalPrice)} บ.)`)}
-          <div class="flex items-center gap-1.5 px-1 pt-1 text-sm text-gray-600">
-            ${UI.icon("circle-alert", "w-4 h-4 shrink-0")} ต้องติ๊กครบทุกรายการจึงจะยืนยันการสั่งซื้อได้
-          </div>
-        </section>
-      </div>
-
-      <div class="${UI.bottomBarClass}">
-        <div class="max-w-lg mx-auto flex gap-3">
-          <button onclick="PageRenderer.renderForm()"
-                  class="flex items-center justify-center gap-2 rounded-full bg-white text-gray-800 text-base shadow-float-lg px-5 py-4">
+        <div class="shrink-0 flex gap-3 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+          <button data-close="1"
+                  class="flex items-center justify-center gap-2 rounded-full bg-stone-100 text-gray-800 text-base px-5 py-4">
             ${UI.icon("arrow-left", "w-5 h-5")} แก้ไข
           </button>
-          <button id="confirm-button" onclick="OrderManager.submitOrder()" disabled
-                  class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white text-base shadow-float-lg px-5 py-4 opacity-50 cursor-not-allowed">
+          <button id="confirm-button" onclick="OrderManager.submitOrder()"
+                  class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white text-base shadow-float px-5 py-4">
             ${UI.icon("check", "w-5 h-5")} ยืนยันการสั่งซื้อ
           </button>
         </div>
       </div>
     `;
 
-    window.scrollTo(0, 0);
-    checkAllConfirmed();
+    sheet.addEventListener("click", (e) => {
+      if (e.target.closest("[data-close]")) this.closeConfirmSheet();
+    });
+    document.body.appendChild(sheet);
+    document.body.classList.add("overflow-hidden");
+  },
+
+  closeConfirmSheet() {
+    document.getElementById("confirm-sheet")?.remove();
+    document.body.classList.remove("overflow-hidden");
   }
 };
 
@@ -1218,23 +1244,9 @@ function confirmOrder() {
 
     const summary = OrderManager.collectOrderSummary();
 
-    PageRenderer.showConfirmPage({ summary, customer, payMethod, deliveryDate });
+    PageRenderer.showConfirmSheet({ summary, customer, payMethod, deliveryDate });
   } catch (error) {
     alert(error.message);
-  }
-}
-
-function checkAllConfirmed() {
-  const checkboxes = document.querySelectorAll('.check-confirm');
-  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-  const confirmBtn = document.getElementById("confirm-button");
-
-  if (allChecked) {
-    confirmBtn.classList.remove("opacity-50", "cursor-not-allowed");
-    confirmBtn.disabled = false;
-  } else {
-    confirmBtn.classList.add("opacity-50", "cursor-not-allowed");
-    confirmBtn.disabled = true;
   }
 }
 
