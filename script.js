@@ -1064,7 +1064,11 @@ const App = {
             ${UI.icon("message-circle", "w-6 h-6")}
           </div>
           <div class="text-gray-900 mb-1">กรุณาสั่งผักผ่าน LINE OA</div>
-          <p class="text-sm text-gray-500">เปิด LINE OA ของ Halem Farm แล้วกดเมนูสั่งผักที่ Rich menu</p>
+          <p class="text-sm text-gray-500">เปิด LINE OA ของ Halem Farm <span class="whitespace-nowrap">(LINE ID: <span class="text-gray-900">@halemfarm</span>)</span> แล้วกดเมนูสั่งผักที่ Rich menu</p>
+          <a href="https://line.me/R/ti/p/@halemfarm"
+             class="mt-4 inline-flex items-center gap-2 rounded-full bg-green-600 text-white shadow-float-lg px-5 py-3 text-sm">
+            ${UI.icon("user-plus", "w-4 h-4")} เพิ่มเพื่อน @halemfarm
+          </a>
         </section>
       </div>
     `;
