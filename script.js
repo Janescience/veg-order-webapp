@@ -88,6 +88,19 @@ const Utils = {
     return new URLSearchParams(window.location.search);
   },
 
+  escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  },
+
+  formatMoney(amount) {
+    return Number(amount).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+
   formatThaiDate(dateStr) {
     const date = new Date(dateStr);
     const day = THAI_LOCALE.DAYS[date.getDay()];
@@ -112,10 +125,10 @@ const Utils = {
     const diffTime = delivery - today;
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return "📦 จัดส่งวันนี้";
-    if (diffDays === 1) return "📦 จัดส่งพรุ่งนี้";
-    if (diffDays > 1) return `📦 จัดส่งในอีก ${diffDays} วัน`;
-    return "⚠️ วันที่จัดส่งย้อนหลัง กรุณาตรวจสอบ";
+    if (diffDays === 0) return "จัดส่งวันนี้";
+    if (diffDays === 1) return "จัดส่งพรุ่งนี้";
+    if (diffDays > 1) return `จัดส่งในอีก ${diffDays} วัน`;
+    return "วันที่จัดส่งย้อนหลัง กรุณาตรวจสอบ";
   },
 
   convertNumberToThaiText(amount) {
@@ -177,13 +190,41 @@ const Utils = {
 // 🎨 UI COMPONENTS & DOM MANIPULATION
 // ==================================================
 const UI = {
+  icon(name, className = "w-4 h-4") {
+    return `<i data-lucide="${name}" class="${className}"></i>`;
+  },
+
+  // Replace <i data-lucide> placeholders with SVG icons after each render
+  renderIcons() {
+    if (window.lucide) lucide.createIcons();
+  },
+
+  header() {
+    return `
+      <header class="flex items-center justify-center gap-3 pt-2 pb-1">
+        <img src="logo.png" alt="Halem Farm Logo" class="w-11 h-11 object-contain" />
+        <div class="leading-tight">
+          <div class="text-xl font-medium tracking-wide text-gray-900">HALEM FARM</div>
+          <div class="text-xs text-gray-500">สั่งผักออร์แกนิคจากฟาร์ม</div>
+        </div>
+      </header>
+    `;
+  },
+
+  sectionLabel(icon, text, extra = "") {
+    return `
+      <div class="flex items-center gap-2 text-sm text-gray-500 mb-3">
+        ${this.icon(icon, "w-4 h-4 text-gray-400")}
+        <span>${text}</span>
+        ${extra}
+      </div>
+    `;
+  },
+
   showLoading(section = "all", text = "กำลังโหลดข้อมูล...") {
     const spinnerHTML = `
-      <div class="flex flex-col items-center justify-center py-6 text-gray-500 animate-pulse">
-        <svg class="w-8 h-8 mb-2 text-green-600 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-        </svg>
+      <div class="flex flex-col items-center justify-center py-8 text-gray-500">
+        ${this.icon("loader-circle", "w-7 h-7 mb-2 text-green-600 animate-spin")}
         <span class="text-sm">${text}</span>
       </div>
     `;
@@ -197,6 +238,7 @@ const UI = {
     const targetId = sectionMapping[section] || "form-container";
     const element = document.getElementById(targetId);
     if (element) element.innerHTML = spinnerHTML;
+    this.renderIcons();
   },
 
   hideLoading(section = "all") {
@@ -221,14 +263,18 @@ const UI = {
   showSuccessToast() {
     const toast = document.getElementById("toast-success");
     if (toast) {
+      this.renderIcons();
       toast.classList.remove("hidden");
       setTimeout(() => toast.classList.add("hidden"), APP_CONFIG.UI.TOAST_SUCCESS_DURATION);
     }
   },
 
-  showErrorToast() {
+  showErrorToast(message) {
     const toast = document.getElementById("toast-error");
     if (toast) {
+      const messageEl = document.getElementById("toast-error-message");
+      if (messageEl && message) messageEl.innerText = message;
+      this.renderIcons();
       toast.classList.remove("hidden");
       setTimeout(() => toast.classList.add("hidden"), APP_CONFIG.UI.TOAST_ERROR_DURATION);
     }
@@ -236,69 +282,65 @@ const UI = {
 
   generateCustomerSection() {
     const shops = Array.isArray(AppState.savedCustomerInfo) ? AppState.savedCustomerInfo : [];
+    const esc = Utils.escapeHtml;
 
     if (shops.length >= 2) {
-      const shopRadios = shops.map((c, i) => `
-        <label class="flex items-center space-x-2 mb-1">
-          <input type="radio" name="customer-choice" value="${c.shop}"
-                 class="form-radio h-5 w-5 accent-green-600" id="shop-${i}"
-                 ${i === 0 ? "checked" : ""} />
-          <span>${c.shop}</span>
+      const chipClass = "inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-4 py-2 text-sm text-gray-700 transition peer-checked:bg-green-600 peer-checked:text-white peer-checked:shadow-float peer-focus-visible:ring-2 peer-focus-visible:ring-green-500/40";
+      const shopChips = shops.map((c, i) => `
+        <label class="cursor-pointer">
+          <input type="radio" name="customer-choice" value="${esc(c.shop)}"
+                 class="peer sr-only" id="shop-${i}" ${i === 0 ? "checked" : ""} />
+          <span class="${chipClass}">${esc(c.shop)}</span>
         </label>
       `).join("");
 
       return `
-        <div id="customer-section" class="border border-green-600 rounded-lg p-2">
-          <label class="block font-medium mb-2 bg-gray-100 border border-gray-300 rounded-lg p-1">🏪 เลือกร้านที่เคยสั่ง</label>
-          <div>
-            ${shopRadios}
-            <label class="flex items-center space-x-2 text-gray-500">
-              <input type="radio" name="customer-choice" value="__NEW__"
-                     class="form-radio h-5 w-5 accent-green-600" id="shop-new" />
-              <span>กรอกร้านใหม่</span>
-            </label>
-          </div>
-          <div id="new-shop-input" class="hidden">
-            <input id="customer-new" type="text" placeholder="กรอกร้านใหม่"
-                   class="w-full border rounded-md px-4 py-2 shadow-sm" />
-          </div>
-        </div>
-      `;
-    } else {
-      const defaultShop = shops[0]?.shop || "";
-      return `
-        <div id="customer-section" class="border border-green-600 rounded-lg p-2">
-          <label class="block font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">
-            🏪 กรอกชื่อร้าน <span class="text-xs text-red-500">*ห้ามว่าง</span>
+        ${this.sectionLabel("store", "เลือกร้านที่เคยสั่ง")}
+        <div class="flex flex-wrap gap-2">
+          ${shopChips}
+          <label class="cursor-pointer">
+            <input type="radio" name="customer-choice" value="__NEW__" class="peer sr-only" id="shop-new" />
+            <span class="${chipClass}">${this.icon("plus", "w-3.5 h-3.5")} ร้านใหม่</span>
           </label>
-          <input id="customer-new" type="text" placeholder="กรุณากรอกชื่อร้าน"
-                 class="w-full border rounded-md px-4 py-2 shadow-sm" value="${defaultShop}" />
+        </div>
+        <div id="new-shop-input" class="hidden mt-3">
+          <input id="customer-new" type="text" placeholder="กรอกชื่อร้านใหม่"
+                 class="w-full rounded-full bg-stone-100 px-4 py-2.5 text-gray-900 placeholder-gray-400" />
         </div>
       `;
     }
+
+    const defaultShop = shops[0]?.shop || "";
+    return `
+      ${this.sectionLabel("store", "ชื่อร้าน", '<span class="ml-auto text-xs text-red-500">จำเป็น</span>')}
+      <input id="customer-new" type="text" placeholder="กรุณากรอกชื่อร้าน"
+             class="w-full rounded-full bg-stone-100 px-4 py-2.5 text-gray-900 placeholder-gray-400" value="${esc(defaultShop)}" />
+    `;
   },
 
   generateVegetablesSection() {
+    const esc = Utils.escapeHtml;
     return AppState.vegetables.map((veg, index) => `
-      <div class="py-3 grid grid-cols-12 gap-2 items-center">
-        <div class="col-span-2">
-          <img src="${veg.image}" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
+      <div class="flex items-center gap-3 py-2.5">
+        <div class="w-14 h-14 shrink-0 rounded-2xl bg-stone-50 flex items-center justify-center overflow-hidden">
+          <img src="${esc(veg.image)}" alt="${esc(veg.nameTh)}" loading="lazy" class="w-11 h-11 object-contain" />
         </div>
-        <div class="col-span-4">
-          <div class="font-medium">${veg.nameTh}</div>
-          <div class="text-base text-gray-500">${veg.nameEng}</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-gray-900 font-normal truncate">${esc(veg.nameTh)}</div>
+          <div class="text-xs text-gray-400 truncate">${esc(veg.nameEng)}</div>
+          <div class="text-xs text-gray-500">${veg.price} บ./กก.</div>
         </div>
-        <div class="col-span-4">
-          <input type="number" min="0" step="0.5"
-                 data-name="${veg.nameEng}" data-nameth="${veg.nameTh}"
-                 data-price="${veg.price}" data-image="${veg.image}"
-                 placeholder="จำนวน (กก.)"
-                 class="input-box border rounded-md shadow-sm px-3 py-1 w-full text-right"
-                 oninput="OrderManager.updateItemTotal(this)" />
-          <div class="text-sm text-right">${veg.price} บาท/กก.</div>
-        </div>
-        <div class="col-span-2 text-right font-semibold">
-          <span id="total-${index}" class="font-bold underline">0</span> บาท
+        <div class="w-28 shrink-0 text-right">
+          <div class="relative">
+            <input type="number" min="0" step="0.5" inputmode="decimal"
+                   data-name="${esc(veg.nameEng)}" data-nameth="${esc(veg.nameTh)}"
+                   data-price="${veg.price}" data-image="${esc(veg.image)}"
+                   placeholder="0"
+                   class="input-box w-full rounded-full bg-stone-100 pl-3 pr-9 py-2 text-right text-gray-900 placeholder-gray-400"
+                   oninput="OrderManager.updateItemTotal(this)" />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">กก.</span>
+          </div>
+          <div class="text-xs text-gray-500 mt-1"><span id="total-${index}" class="text-gray-900">0</span> บ.</div>
         </div>
       </div>
     `).join('');
@@ -396,9 +438,12 @@ const OrderManager = {
     return summary;
   },
 
-  async submitOrder(summaryJson, deliveryDate, customer, payMethod) {
+  async submitOrder() {
+    const pending = AppState.pendingOrder;
+    if (!pending) return;
+
     try {
-      const summary = JSON.parse(summaryJson);
+      const { summary, customer, payMethod, deliveryDate } = pending;
 
       const payload = {
         date: new Date().toISOString(),
@@ -415,110 +460,291 @@ const OrderManager = {
       const data = await ApiService.submitOrder(payload);
       console.log('Order API response:', data);
 
-      this.showOrderReceipt(summary, customer, payMethod, deliveryDate);
+      this.showOrderReceipt({ ...pending, orderId: data.orderId, isReplacement: data.isReplacement, orderedAt: new Date() });
 
     } catch (error) {
       console.error('Order API error:', error);
       UI.showErrorToast();
-      UI.hideLoading();
+      // Go back to the confirm page so the customer can retry without losing the order
+      PageRenderer.showConfirmPage(pending);
     }
   },
 
-  showOrderReceipt(summary, customer, payMethod, deliveryDate) {
-    const thaiDeliveryDate = Utils.formatThaiDate(deliveryDate);
-    const thaiToday = Utils.formatThaiDate(new Date());
+  showOrderReceipt(receipt) {
+    const { summary, customer, payMethod, deliveryDate, orderId, isReplacement, orderedAt } = receipt;
+    const esc = Utils.escapeHtml;
+    const money = Utils.formatMoney;
     const totalKg = summary.reduce((sum, item) => sum + item.amount, 0);
     const totalBaht = summary.reduce((sum, item) => sum + item.subtotal, 0);
-    const thaiText = Utils.convertNumberToThaiText(totalBaht);
+    const reference = orderId ? String(orderId).slice(-6).toUpperCase() : "-";
+    const orderedTime = `${String(orderedAt.getHours()).padStart(2, "0")}:${String(orderedAt.getMinutes()).padStart(2, "0")} น.`;
+
+    AppState.lastReceipt = { ...receipt, reference, totalKg, totalBaht };
+
+    const infoRow = (label, value) => `
+      <div class="flex justify-between gap-4 py-0.5">
+        <span class="text-gray-400 shrink-0">${label}</span>
+        <span class="text-gray-900 text-right">${value}</span>
+      </div>
+    `;
+    const divider = `<div class="my-4 border-t border-dashed border-gray-300"></div>`;
+
+    const paymentTerms = payMethod === 'โอนเงิน'
+      ? `กรุณาโอนชำระเงินภายใน 3 วัน นับจากวันจัดส่งสินค้า<br/>
+         ธนาคารกสิกรไทย เลขที่บัญชี <span class="text-gray-900 tabular-nums">113-8-48085-9</span><br/>
+         ชื่อบัญชี นายฮาเล็ม เจะมาริกัน`
+      : payMethod === 'เครดิต'
+        ? `กรุณาชำระเงินหลังจากวางบิลภายใน 7 วัน`
+        : `กรุณาชำระเงินภายในวันจัดส่งสินค้า`;
 
     const html = `
-      <div class="max-w-md mx-auto bg-white border rounded-lg shadow p-1 text-sm text-gray-800">
-        <h2 class="text-2xl font-bold text-center mb-2 mt-1">ใบสั่งซื้อ</h2>
-        <div class="flex items-center gap-2 text-xl font-black justify-center tracking-tight mb-2">
-          <img src="logo.png" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
-          <span>HALEM FARM</span>
+      <div class="max-w-md mx-auto px-4 pt-6 pb-36 animate-fade-in">
+        <div class="flex flex-col items-center text-center mb-5">
+          <div class="w-14 h-14 rounded-full bg-green-600 text-white shadow-float-lg flex items-center justify-center mb-3">
+            ${UI.icon("check", "w-7 h-7")}
+          </div>
+          <div class="text-lg text-gray-900 font-normal">สั่งซื้อเรียบร้อยแล้ว</div>
+          <div class="text-sm text-gray-500">บันทึกหรือแชร์ใบสั่งซื้อเก็บไว้เป็นหลักฐานได้</div>
         </div>
 
-        <div class="grid grid-cols-1 gap-2 mb-2 text-sm">
-          <div>
-            <div><strong>สั่งโดย:</strong> ${AppState.customerName}</div>
-            <div><strong>ชื่อลูกค้า:</strong> ${customer}</div>
-            <div><strong>วิธีชำระเงิน:</strong> ${payMethod}</div>
-            <div><strong>วันที่สั่งซื้อ:</strong> ${thaiToday}</div>
-            <div><strong>วันที่จัดส่ง:</strong> ${thaiDeliveryDate}</div>
+        <div id="receipt" class="bg-white rounded-3xl shadow-float px-5 py-6 text-sm font-light text-gray-600">
+          <div class="flex flex-col items-center text-center">
+            <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain mb-1" />
+            <div class="text-base font-medium tracking-wide text-gray-900">HALEM FARM</div>
+            <div class="text-xs text-gray-400">ผักออร์แกนิคจากฟาร์ม</div>
+            <div class="mt-3 rounded-full bg-stone-100 px-4 py-1 text-xs tracking-wide text-gray-600">ใบสั่งซื้อ</div>
+            ${isReplacement ? `<div class="mt-2 text-xs text-amber-600">แก้ไขคำสั่งซื้อเดิมของวันจัดส่งนี้</div>` : ""}
+          </div>
+
+          ${divider}
+
+          ${infoRow("เลขที่อ้างอิง", `<span class="tabular-nums">#${reference}</span>`)}
+          ${infoRow("วันที่สั่ง", `${Utils.formatThaiDate(orderedAt)} ${orderedTime}`)}
+          ${infoRow("วันที่จัดส่ง", Utils.formatThaiDate(deliveryDate))}
+          ${infoRow("ร้าน", esc(customer))}
+          ${infoRow("สั่งโดย", esc(AppState.customerName))}
+          ${infoRow("ชำระเงิน", esc(payMethod))}
+
+          ${divider}
+
+          <div class="flex justify-between text-xs text-gray-400 mb-2">
+            <span>รายการ</span>
+            <span>จำนวนเงิน (บาท)</span>
+          </div>
+          ${summary.map((item) => `
+            <div class="py-1.5">
+              <div class="flex justify-between gap-4">
+                <span class="text-gray-900">${esc(item.nameTh || item.name)}</span>
+                <span class="text-gray-900 tabular-nums">${money(item.subtotal)}</span>
+              </div>
+              <div class="text-xs text-gray-400 tabular-nums">${item.amount.toFixed(2)} กก. × ${money(item.price)}</div>
+            </div>
+          `).join("")}
+
+          ${divider}
+
+          ${infoRow("จำนวนรายการ", `${summary.length} รายการ`)}
+          ${infoRow("น้ำหนักรวม", `<span class="tabular-nums">${totalKg.toFixed(2)}</span> กก.`)}
+          <div class="flex justify-between items-baseline gap-4 mt-2">
+            <span class="text-gray-900 font-normal">ยอดสุทธิ</span>
+            <span class="text-2xl text-gray-900 font-medium tabular-nums">${money(totalBaht)}</span>
+          </div>
+          <div class="text-xs text-gray-400 text-right">(${Utils.convertNumberToThaiText(totalBaht)})</div>
+
+          ${divider}
+
+          <div class="text-xs leading-relaxed">
+            <div class="text-gray-900 mb-1">เงื่อนไขการชำระเงิน</div>
+            ${paymentTerms}
+          </div>
+
+          ${divider}
+
+          <div class="text-center text-xs text-gray-400">
+            ขอบคุณที่ใช้บริการ Halem Farm
           </div>
         </div>
 
-        <table class="w-full border border-gray-300 mb-2 text-sm">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="border px-2 py-1">ลำดับ</th>
-              <th class="border px-2 py-1 text-left">รายการ</th>
-              <th class="border px-2 py-1 text-center">จำนวน (กก.)</th>
-              <th class="border px-2 py-1 text-right">ราคา/กก.</th>
-              <th class="border px-2 py-1 text-right">รวม (บาท)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${summary.map((item, i) => `
-              <tr>
-                <td class="border px-2 py-1 text-center">${i + 1}</td>
-                <td class="border px-2 py-1">${item.nameTh || item.name}</td>
-                <td class="border px-2 py-1 text-center">${item.amount.toFixed(2)}</td>
-                <td class="border px-2 py-1 text-right">${item.price}</td>
-                <td class="border px-2 py-1 text-right">${item.subtotal}</td>
-              </tr>
-            `).join("")}
-            <tr class="border-t font-semibold bg-gray-50">
-              <td colspan="2" class="px-2 py-2 text-left">รวมทั้งหมด</td>
-              <td class="px-2 py-2 text-center">${totalKg.toFixed(2)}</td>
-              <td class="px-2 py-2 text-right">-</td>
-              <td class="px-2 py-2 text-right">${totalBaht}</td>
-            </tr>
-          </tbody>
-        </table>
+        <button onclick="ReceiptActions.close()" class="no-print mt-5 mx-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-gray-500 bg-transparent">
+          ${UI.icon("x", "w-4 h-4")} ปิดหน้านี้
+        </button>
 
-        <table class="w-full border border-gray-300 mt-2 text-sm">
-          <tbody>
-            <tr class="border-t font-semibold">
-              <td class="px-2 py-2 text-left" colspan="3">( ${thaiText} )</td>
-              <td class="px-2 py-2 text-right">รวมเป็นเงิน</td>
-              <td class="px-2 py-2 text-right">${(totalBaht).toFixed(2)}</td>
-            </tr>
-            <tr class="font-medium">
-              <td colspan="3"></td>
-              <td class="px-2 py-2 text-right">ภาษีมูลค่าเพิ่ม 7%</td>
-              <td class="px-2 py-2 text-right">0.00</td>
-            </tr>
-            <tr class="font-bold bg-gray-50 border-t">
-              <td colspan="3"></td>
-              <td class="px-2 py-2 text-right">ยอดสุทธิ</td>
-              <td class="px-2 py-2 text-right">${totalBaht.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="text-xs mt-2 text-gray-700 leading-relaxed">
-          <div class="font-semibold">เงื่อนไขการชำระเงิน</div>
-          ${payMethod === 'โอนเงิน'
-            ? `กรุณาโอนชำระเงินภายใน 3 วัน นับจากวันจัดส่งสินค้า<br/>
-              เข้าบัญชี <strong>ธนาคารกสิกรไทย</strong><br/>
-              เลขที่บัญชี: <strong>113-8-48085-9</strong><br/>
-              ชื่อบัญชี: <strong>นายฮาเล็ม เจะมาริกัน</strong>`
-            : payMethod === 'เครดิต' ? `กรุณาชำระเงินหลังจากวางบิลภายใน 7 วัน`
-            : `กรุณาชำระเงินภายในวันจัดส่งสินค้า`}
+        <div class="no-print fixed inset-x-0 bottom-0 px-4 pb-5 pt-2">
+          <div class="max-w-md mx-auto flex gap-3">
+            <button id="save-receipt-btn" onclick="ReceiptActions.save()"
+                    class="flex-1 flex items-center justify-center gap-2 rounded-full bg-white text-gray-800 shadow-float-lg px-5 py-3.5">
+              ${UI.icon("image-down", "w-5 h-5")} บันทึกรูป
+            </button>
+            <button id="share-receipt-btn" onclick="ReceiptActions.share()"
+                    class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white shadow-float-lg px-5 py-3.5">
+              ${UI.icon("share-2", "w-5 h-5")} แชร์
+            </button>
+          </div>
         </div>
-
-        <div class="grid grid-cols-2 gap-6 text-sm text-gray-600 mt-10 text-center">
-          <div><div class="border-t border-gray-400 pt-2">ลงชื่อฟาร์ม</div></div>
-          <div><div class="border-t border-gray-400 pt-2">ลงชื่อลูกค้า</div></div>
-        </div>
-        <div class="text-center mt-4">สั่งซื้อเรียบร้อยแล้ว ✨ ขอบคุณที่ใช้บริการครับ 🙏</div>
       </div>
     `;
 
     document.getElementById("form-container").innerHTML = html;
+    window.scrollTo(0, 0);
+    UI.renderIcons();
     setTimeout(() => UI.showSuccessToast(), 100);
+  }
+};
+
+// ==================================================
+// 🧾 RECEIPT SAVE / SHARE
+// ==================================================
+const ReceiptActions = {
+  fileName() {
+    return `halem-farm-${AppState.lastReceipt?.reference || "order"}.png`;
+  },
+
+  async toBlob() {
+    const node = document.getElementById("receipt");
+    const options = {
+      pixelRatio: 3,
+      backgroundColor: "#ffffff",
+      style: { boxShadow: "none", borderRadius: "0", margin: "0" }
+    };
+    // First pass warms up fonts/images; Safari often misses them on the first render
+    await htmlToImage.toBlob(node, options);
+    return htmlToImage.toBlob(node, options);
+  },
+
+  async withBusy(buttonId, text, task) {
+    const button = document.getElementById(buttonId);
+    const original = button?.innerHTML;
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = `${UI.icon("loader-circle", "w-5 h-5 animate-spin")} ${text}`;
+      UI.renderIcons();
+    }
+    try {
+      await task();
+    } catch (error) {
+      console.error("Receipt action failed:", error);
+      UI.showErrorToast("ไม่สามารถสร้างรูปใบสั่งซื้อได้ กรุณาแคปหน้าจอแทน");
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = original;
+        UI.renderIcons();
+      }
+    }
+  },
+
+  // Returns true when the native share sheet was shown (it includes "Save Image" on phones)
+  async shareFile(blob) {
+    const file = new File([blob], this.fileName(), { type: "image/png" });
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })) return false;
+    try {
+      await navigator.share({ files: [file], title: "ใบสั่งซื้อ Halem Farm" });
+    } catch (error) {
+      if (error.name === "AbortError") return true;
+      // Some browsers drop the tap permission while the image is being generated
+      if (error.name === "NotAllowedError") return false;
+      throw error;
+    }
+    return true;
+  },
+
+  save() {
+    return this.withBusy("save-receipt-btn", "กำลังสร้างรูป", async () => {
+      const blob = await this.toBlob();
+      if (await this.shareFile(blob)) return;
+      this.showPreview(blob);
+    });
+  },
+
+  share() {
+    return this.withBusy("share-receipt-btn", "กำลังเตรียม", async () => {
+      // Share to LINE friends/groups when the LIFF app allows it
+      if (window.liff && liff.isApiAvailable && liff.isApiAvailable("shareTargetPicker")) {
+        await liff.shareTargetPicker([this.buildFlexMessage()]);
+        return;
+      }
+      const blob = await this.toBlob();
+      if (await this.shareFile(blob)) return;
+      this.showPreview(blob);
+    });
+  },
+
+  // Fallback for in-app browsers without file sharing: show the image to long-press save
+  showPreview(blob) {
+    const url = URL.createObjectURL(blob);
+    const overlay = document.createElement("div");
+    overlay.id = "receipt-preview";
+    overlay.className = "no-print fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-fade-in";
+    overlay.innerHTML = `
+      <img src="${url}" alt="ใบสั่งซื้อ" class="max-h-[68vh] w-auto rounded-2xl bg-white shadow-float-lg" />
+      <p class="mt-4 flex items-center gap-2 text-sm text-white/90">
+        ${UI.icon("pointer", "w-4 h-4")} กดค้างที่รูปเพื่อบันทึกรูปภาพ
+      </p>
+      <div class="mt-4 flex gap-3">
+        <a href="${url}" download="${this.fileName()}"
+           class="flex items-center gap-2 rounded-full bg-white text-gray-800 shadow-float-lg px-5 py-3 text-sm">
+          ${UI.icon("download", "w-4 h-4")} ดาวน์โหลด
+        </a>
+        <button id="close-preview-btn" class="flex items-center gap-2 rounded-full bg-white/15 text-white px-5 py-3 text-sm">
+          ${UI.icon("x", "w-4 h-4")} ปิด
+        </button>
+      </div>
+    `;
+    const close = () => {
+      overlay.remove();
+      URL.revokeObjectURL(url);
+    };
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay || e.target.closest("#close-preview-btn")) close();
+    });
+    document.body.appendChild(overlay);
+    UI.renderIcons();
+  },
+
+  buildFlexMessage() {
+    const r = AppState.lastReceipt;
+    const money = Utils.formatMoney;
+    const row = (left, right, options = {}) => ({
+      type: "box",
+      layout: "horizontal",
+      contents: [
+        { type: "text", text: left, size: "sm", color: options.leftColor || "#888888", flex: 5, wrap: true },
+        { type: "text", text: right, size: "sm", color: "#111111", align: "end", flex: 4, weight: options.bold ? "bold" : "regular", wrap: true }
+      ]
+    });
+
+    return {
+      type: "flex",
+      altText: `ใบสั่งซื้อ Halem Farm #${r.reference}`,
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            { type: "text", text: "HALEM FARM", weight: "bold", size: "md", color: "#111111" },
+            { type: "text", text: `ใบสั่งซื้อ #${r.reference}`, size: "xs", color: "#888888" },
+            { type: "separator", margin: "md" },
+            row("ร้าน", r.customer),
+            row("วันที่จัดส่ง", Utils.formatThaiDate(r.deliveryDate)),
+            row("ชำระเงิน", r.payMethod),
+            { type: "separator", margin: "md" },
+            ...r.summary.map((item) => row(`${item.nameTh || item.name} ${item.amount.toFixed(2)} กก.`, money(item.subtotal), { leftColor: "#111111" })),
+            { type: "separator", margin: "md" },
+            row("ยอดสุทธิ", `${money(r.totalBaht)} บาท`, { leftColor: "#111111", bold: true })
+          ]
+        }
+      }
+    };
+  },
+
+  close() {
+    if (window.liff && liff.isInClient && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      window.close();
+    }
   }
 };
 
@@ -529,79 +755,87 @@ const PageRenderer = {
   renderFormClosed() {
     const container = document.getElementById("form-container");
     container.innerHTML = `
-      <div class="max-w-lg mx-auto p-2 bg-white shadow-lg rounded-lg text-gray-800">
-        <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
-          <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
-          <span>HALEM FARM</span>
-        </div>
-        <div class="text-center text-xl">
-          </br>เนื่องจากสถานการณ์ฟาร์มตอนนี้ผักขาดตลาด  </br> ขออนุญาตปิดรับออร์เดอร์ชั่วคราว </br>
-          จะพร้อมส่งในอีก 1 สัปดาห์ </br>
-          ขออภัยในความไม่สะดวกครับ 🙏🏻👨🏻‍🌾🥬
-        </div>
+      <div class="max-w-lg mx-auto px-4 py-6 space-y-4">
+        ${UI.header()}
+        <section class="bg-white rounded-3xl shadow-float p-6 text-center">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+            ${UI.icon("sprout", "w-6 h-6")}
+          </div>
+          <div class="text-gray-900 mb-2">ปิดรับออร์เดอร์ชั่วคราว</div>
+          <p class="text-sm text-gray-500 leading-relaxed">
+            เนื่องจากสถานการณ์ฟาร์มตอนนี้ผักขาดตลาด<br/>
+            จะพร้อมส่งในอีก 1 สัปดาห์<br/>
+            ขออภัยในความไม่สะดวกครับ
+          </p>
+        </section>
       </div>
     `;
+    UI.renderIcons();
   },
 
   renderForm() {
     const container = document.getElementById("form-container");
-    const customerSectionHTML = UI.generateCustomerSection();
+    const cutoff = `${String(APP_CONFIG.ORDER_CUTOFF_TIME.HOUR).padStart(2, '0')}:${String(APP_CONFIG.ORDER_CUTOFF_TIME.MINUTE).padStart(2, '0')}`;
 
     container.innerHTML = `
-      <div class="max-w-lg mx-auto p-2 bg-white shadow-lg rounded-lg text-gray-800">
-        <div class="flex items-center gap-2 text-3xl font-black justify-center tracking-tight mb-4">
-          <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain" />
-          <span>HALEM FARM</span>
-        </div>
-        <div class="text-sm mt-2 mb-2 text-center text-gray-600">
-          กรุณาสั่งก่อน <span class="font-medium">${String(APP_CONFIG.ORDER_CUTOFF_TIME.HOUR).padStart(2, '0')}:${String(APP_CONFIG.ORDER_CUTOFF_TIME.MINUTE).padStart(2, '0')} น.</span> เพื่อจัดส่งภายในวันนี้ หากเลยเวลานี้จะจัดส่งในวันถัดไป
+      <div class="w-full max-w-lg mx-auto px-4 pt-4 pb-32 space-y-3">
+        ${UI.header()}
+
+        <div class="flex justify-center">
+          <div class="inline-flex items-center gap-1.5 rounded-full bg-white shadow-float px-3 py-1.5 text-xs text-gray-600">
+            ${UI.icon("clock", "w-3.5 h-3.5 text-gray-400")}
+            สั่งก่อน ${cutoff} น. จัดส่งภายในวันนี้ หลังจากนั้นส่งวันถัดไป
+          </div>
         </div>
 
-        <div id="customer-section">
-          <div class="grid grid-cols-2 gap-2 mb-2">
-            ${customerSectionHTML}
-            <div class="border border-green-600 rounded-lg p-2">
-              <label class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">
-                เลือกวิธีชำระเงิน <span class="text-xs text-red-500">*ห้ามว่าง</span>
-              </label>
-              <select id="pay-method" class="w-full border rounded-md px-4 py-2 shadow-sm">
+        <section id="customer-section" class="bg-white rounded-3xl shadow-float p-4">
+          ${UI.generateCustomerSection()}
+        </section>
+
+        <section class="bg-white rounded-3xl shadow-float p-4 space-y-4">
+          <div>
+            ${UI.sectionLabel("wallet", "วิธีชำระเงิน", '<span class="ml-auto text-xs text-red-500">จำเป็น</span>')}
+            <div class="relative">
+              <select id="pay-method" class="w-full rounded-full bg-stone-100 pl-4 pr-10 py-2.5 text-gray-900">
                 <option value="" selected>เลือกวิธีชำระเงิน</option>
-                <option value="เงินสด">💵 เงินสดธนบัตร</option>
-                <option value="โอนเงิน">📱 เงินสดโอนเงิน</option>
-                <option value="เครดิต">💳 เครดิต</option>
+                <option value="เงินสด">เงินสดธนบัตร</option>
+                <option value="โอนเงิน">เงินสดโอนเงิน</option>
+                <option value="เครดิต">เครดิต</option>
               </select>
-            </div>
-            <div class="border border-green-600 rounded-lg p-2 col-span-2">
-              <label for="delivery-date" class="block text-gray-700 font-medium mb-1 bg-gray-100 border border-gray-300 rounded-lg p-1">
-                🚛 เลือกวันที่จัดส่ง
-              </label>
-              <input id="delivery-date" type="date" class="w-full border rounded-md px-4 py-2 shadow-sm" onchange="updateDeliveryDate()" />
-            </div>
-            <div class="col-span-2 bg-gray-200 border border-gray-200 rounded-lg p-2">
-              <span id="formatted-date" class="text-green-700 font-normal"></span>
-              <span id="holiday-warning" class="text-red-500 font-normal"></span>
+              ${UI.icon("chevron-down", "w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none")}
             </div>
           </div>
-        </div>
 
-        <div class="divide-y divide-gray-200 mt-4" id="vegetables-section">
-          <div class="font-medium text-lg">📋 รายการผัก</div>
-          ${UI.generateVegetablesSection()}
-        </div>
-
-        <div class="mt-4 flex justify-between font-medium text-lg">
-          <div>รวมทั้งหมด:</div>
-          <div class="text-right">
-            <span id="total-amount">0.0</span> กก. /
-            <span id="total-price">0</span> บาท
+          <div>
+            ${UI.sectionLabel("calendar-days", "วันที่จัดส่ง")}
+            <input id="delivery-date" type="date" onchange="updateDeliveryDate()"
+                   class="w-full min-h-[44px] rounded-full bg-stone-100 px-4 py-2.5 text-left text-gray-900" />
+            <div id="delivery-info" class="mt-2 px-1 text-sm">
+              <span id="formatted-date" class="text-green-700"></span>
+              <span id="holiday-warning" class="text-red-500"></span>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="mt-6">
-          <button id="check-order-btn" onclick="confirmOrder()"
-                  class="w-full text-white bg-green-600 hover:bg-green-700 py-2 px-4 rounded shadow opacity-50 cursor-not-allowed"
-                  disabled>
-            ✅ ตรวจสอบคำสั่งซื้อ
+        <section class="bg-white rounded-3xl shadow-float p-4">
+          ${UI.sectionLabel("leaf", "รายการผัก")}
+          <div id="vegetables-section" class="divide-y divide-stone-100">
+            ${UI.generateVegetablesSection()}
+          </div>
+        </section>
+      </div>
+
+      <div class="fixed inset-x-0 bottom-0 px-4 pb-5 pt-2 z-40">
+        <div class="max-w-lg mx-auto flex items-center justify-between gap-3 rounded-full bg-white/95 backdrop-blur shadow-float-lg py-2 pl-5 pr-2">
+          <div class="leading-tight">
+            <div class="text-xs text-gray-400">รวมทั้งหมด</div>
+            <div class="text-gray-900 tabular-nums">
+              <span id="total-amount">0.0</span> กก. · <span id="total-price">0</span> บ.
+            </div>
+          </div>
+          <button id="check-order-btn" onclick="confirmOrder()" disabled
+                  class="flex items-center gap-2 rounded-full bg-green-600 text-white px-5 py-3 shadow-float opacity-50 cursor-not-allowed">
+            ตรวจสอบ ${UI.icon("arrow-right", "w-4 h-4")}
           </button>
         </div>
       </div>
@@ -609,6 +843,7 @@ const PageRenderer = {
 
     this.setupEventListeners();
     this.setDefaultDeliveryDate();
+    UI.renderIcons();
   },
 
   setupEventListeners() {
@@ -716,73 +951,94 @@ const PageRenderer = {
     updateDeliveryDate();
   },
 
-  showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount, totalPrice) {
+  showConfirmPage(order) {
+    AppState.pendingOrder = order;
+    const { summary, customer, payMethod, deliveryDate } = order;
+    const totalAmount = summary.reduce((sum, item) => sum + item.amount, 0);
+    const totalPrice = summary.reduce((sum, item) => sum + item.subtotal, 0);
     const container = document.getElementById("form-container");
-    const thaiDeliveryDate = Utils.formatThaiDate(deliveryDate);
+    const esc = Utils.escapeHtml;
+    const money = Utils.formatMoney;
     const deliveryDayText = Utils.getDeliveryDayText(deliveryDate);
 
-    const rows = summary.map((item, index) => `
-      <tr class="border-b">
-        <td class="px-2 py-1">${item.nameTh}</td>
-        <td class="px-2 text-center py-1">${item.amount.toFixed(2)}</td>
-        <td class="px-2 text-center py-1">${item.price}</td>
-        <td class="px-2 text-right py-1">${item.subtotal}</td>
-      </tr>
-    `).join('');
+    const infoRow = (icon, label, value) => `
+      <div class="flex items-center gap-3 py-1.5">
+        <div class="w-9 h-9 shrink-0 rounded-full bg-stone-100 text-gray-500 flex items-center justify-center">
+          ${UI.icon(icon, "w-4 h-4")}
+        </div>
+        <div class="leading-tight min-w-0">
+          <div class="text-xs text-gray-400">${label}</div>
+          <div class="text-gray-900 break-words">${value}</div>
+        </div>
+      </div>
+    `;
+
+    const checkRow = (text) => `
+      <label class="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-3 cursor-pointer">
+        <input type="checkbox" class="check-confirm w-5 h-5 shrink-0 accent-green-600" onchange="checkAllConfirmed()">
+        <span class="text-sm text-gray-700">${text}</span>
+      </label>
+    `;
 
     container.innerHTML = `
-      <div class="max-w-xl mx-auto bg-white shadow p-2 rounded-lg font-[Kanit] text-lg">
-        <h2 class="text-xl font-bold mb-2 text-center">ตรวจสอบคำสั่งซื้อ</h2>
-
-        <table class="w-full border mb-4">
-          <thead class="bg-gray-100">
-            <tr class="border-b">
-              <th class="px-2 py-1 text-left">รายการผัก</th>
-              <th class="px-2 py-1 text-center">จำนวน (กก.)</th>
-              <th class="px-2 py-1 text-center">ราคา/กก.</th>
-              <th class="px-2 py-1 text-right">รวม (บาท)</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-          <tfoot class="font-black bg-gray-50 border-t">
-            <tr>
-              <td class="px-2 py-1">รวม</td>
-              <td class="px-2 py-1 text-center">${totalAmount.toFixed(2)}</td>
-              <td class="px-2 py-1 text-right" colspan="2">${totalPrice}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        <div class="grid grid-cols-1 mb-2">
-          <div>🏪 ชื่อร้าน : <strong>${customer}</strong></div>
-          <div>💳 วิธีชำระเงิน : <strong>${payMethod}</strong></div>
-          <div>🚛 วันที่จัดส่ง : <strong>${thaiDeliveryDate}</strong></div>
+      <div class="w-full max-w-lg mx-auto px-4 pt-4 pb-32 space-y-3 animate-fade-in">
+        <div class="text-center pt-2 pb-1">
+          <div class="text-lg text-gray-900 font-normal">ตรวจสอบคำสั่งซื้อ</div>
+          <div class="text-sm text-gray-500">โปรดตรวจสอบข้อมูลก่อนยืนยัน</div>
         </div>
 
-        <div class="border border-yellow-300 rounded px-3 py-2">
-          ⚠️ โปรดตรวจสอบและติ้กยืนยันทุกรายการ
-          <div class="mt-2 space-y-1">
-            <label><input type="checkbox" class="check-confirm w-5 h-5 accent-green-600" onchange="checkAllConfirmed()"> ตรวจสอบ "ชื่อร้าน" (${customer})</label><br>
-            <label><input type="checkbox" class="check-confirm w-5 h-5 accent-green-600" onchange="checkAllConfirmed()"> ตรวจสอบ "วันที่จัดส่ง" (${deliveryDayText})</label><br>
-            <label><input type="checkbox" class="check-confirm w-5 h-5 accent-green-600" onchange="checkAllConfirmed()"> ตรวจสอบ "รายการผักและยอดรวม" (รวม ${totalAmount} กก./ ${totalPrice} บ.)</label>
+        <section class="bg-white rounded-3xl shadow-float p-4">
+          ${infoRow("store", "ชื่อร้าน", esc(customer))}
+          ${infoRow("wallet", "วิธีชำระเงิน", esc(payMethod))}
+          ${infoRow("truck", "วันที่จัดส่ง", `${Utils.formatThaiDate(deliveryDate)}<span class="text-xs text-gray-400"> · ${deliveryDayText}</span>`)}
+        </section>
+
+        <section class="bg-white rounded-3xl shadow-float p-4">
+          ${UI.sectionLabel("leaf", "รายการผัก")}
+          <div class="divide-y divide-stone-100">
+            ${summary.map((item) => `
+              <div class="flex justify-between gap-4 py-2">
+                <div class="min-w-0">
+                  <div class="text-gray-900">${esc(item.nameTh)}</div>
+                  <div class="text-xs text-gray-400 tabular-nums">${item.amount.toFixed(2)} กก. × ${money(item.price)}</div>
+                </div>
+                <div class="text-gray-900 tabular-nums">${money(item.subtotal)}</div>
+              </div>
+            `).join('')}
           </div>
-          <div class="text-red-600 text-base">(*ต้องติ้กครบทุกรายการถึงจะยืนยันการสั่งซื้อได้)</div>
-        </div>
+          <div class="flex justify-between items-baseline mt-3 pt-3 border-t border-stone-100">
+            <span class="text-gray-500 text-sm">รวม ${totalAmount.toFixed(2)} กก.</span>
+            <span class="text-xl text-gray-900 font-medium tabular-nums">${money(totalPrice)} บ.</span>
+          </div>
+        </section>
 
-        <div class="flex justify-center gap-4 mt-2">
-          <button onclick="PageRenderer.renderForm()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-            ⬅️ ย้อนกลับ
+        <section class="bg-white rounded-3xl shadow-float p-4 space-y-2">
+          ${UI.sectionLabel("list-checks", "ติ๊กยืนยันทุกรายการ")}
+          ${checkRow(`ชื่อร้านถูกต้อง (${esc(customer)})`)}
+          ${checkRow(`วันที่จัดส่งถูกต้อง (${deliveryDayText})`)}
+          ${checkRow(`รายการผักและยอดรวมถูกต้อง (${totalAmount.toFixed(2)} กก. / ${money(totalPrice)} บ.)`)}
+          <div class="flex items-center gap-1.5 px-1 pt-1 text-xs text-gray-400">
+            ${UI.icon("circle-alert", "w-3.5 h-3.5")} ต้องติ๊กครบทุกรายการจึงจะยืนยันการสั่งซื้อได้
+          </div>
+        </section>
+      </div>
+
+      <div class="fixed inset-x-0 bottom-0 px-4 pb-5 pt-2 z-40">
+        <div class="max-w-lg mx-auto flex gap-3">
+          <button onclick="PageRenderer.renderForm()"
+                  class="flex items-center justify-center gap-2 rounded-full bg-white text-gray-700 shadow-float-lg px-5 py-3.5">
+            ${UI.icon("arrow-left", "w-4 h-4")} แก้ไข
           </button>
-          <button id="confirm-button"
-                  onclick='OrderManager.submitOrder(${JSON.stringify(JSON.stringify(summary))}, "${deliveryDate}", "${customer}", "${payMethod}")'
-                  class="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 opacity-50 cursor-not-allowed"
-                  disabled>
-            ✅ ยืนยันการสั่งซื้อ
+          <button id="confirm-button" onclick="OrderManager.submitOrder()" disabled
+                  class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white shadow-float-lg px-5 py-3.5 opacity-50 cursor-not-allowed">
+            ${UI.icon("check", "w-5 h-5")} ยืนยันการสั่งซื้อ
           </button>
         </div>
       </div>
     `;
 
+    window.scrollTo(0, 0);
+    UI.renderIcons();
     checkAllConfirmed();
   }
 };
@@ -801,12 +1057,18 @@ const App = {
     const container = document.getElementById("form-container");
     if (!container) return;
     container.innerHTML = `
-      <div class="max-w-sm mx-auto text-center px-6 py-12">
-        <img src="logo.png" alt="Halem Farm Logo" class="w-16 h-16 mx-auto mb-4 object-contain" />
-        <p class="text-lg font-semibold text-gray-800 mb-2">กรุณาสั่งผักผ่าน LINE OA</p>
-        <p class="text-sm text-gray-500">เปิด LINE OA ของ Halem Farm แล้วกดเมนู "สั่งผัก" ที่ Rich menu</p>
+      <div class="w-full max-w-sm mx-auto px-4 py-10 space-y-4">
+        ${UI.header()}
+        <section class="bg-white rounded-3xl shadow-float p-6 text-center">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+            ${UI.icon("message-circle", "w-6 h-6")}
+          </div>
+          <div class="text-gray-900 mb-1">กรุณาสั่งผักผ่าน LINE OA</div>
+          <p class="text-sm text-gray-500">เปิด LINE OA ของ Halem Farm แล้วกดเมนูสั่งผักที่ Rich menu</p>
+        </section>
       </div>
     `;
+    UI.renderIcons();
   },
 
   // Orders are allowed only from the LIFF app opened inside LINE
@@ -875,8 +1137,14 @@ function updateDeliveryDate() {
     return;
   }
 
-  formattedEl.innerText = !Utils.isFarmClosed(date) ? `${dateTxt} (${Utils.formatThaiDate(date)})` : "";
-  warningEl.innerText = Utils.isFarmClosed(date) ? "🚫 วันหยุดฟาร์ม กรุณาเลือกวันอื่น" : "";
+  const closed = Utils.isFarmClosed(date);
+  formattedEl.innerHTML = !closed
+    ? `<span class="inline-flex items-center gap-1.5">${UI.icon("truck", "w-4 h-4")} ${dateTxt} (${Utils.formatThaiDate(date)})</span>`
+    : "";
+  warningEl.innerHTML = closed
+    ? `<span class="inline-flex items-center gap-1.5">${UI.icon("circle-alert", "w-4 h-4")} วันหยุดฟาร์ม กรุณาเลือกวันอื่น</span>`
+    : "";
+  UI.renderIcons();
   OrderManager.checkEnableConfirmButton();
 }
 
@@ -889,10 +1157,8 @@ function confirmOrder() {
     Utils.validateOrderDate(deliveryDate);
 
     const summary = OrderManager.collectOrderSummary();
-    const totalAmount = summary.reduce((sum, item) => sum + item.amount, 0);
-    const totalPrice = summary.reduce((sum, item) => sum + item.subtotal, 0);
 
-    PageRenderer.showConfirmPage(summary, customer, payMethod, deliveryDate, totalAmount, totalPrice);
+    PageRenderer.showConfirmPage({ summary, customer, payMethod, deliveryDate });
   } catch (error) {
     alert(error.message);
   }
