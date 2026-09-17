@@ -3,7 +3,7 @@
   "private": true,
   "description": "Halem Farm LIFF order page (static site served by GitHub Pages)",
   "scripts": {
-    "build:css": "tailwindcss -c tailwind.config.js -i tailwind-input.css -o tailwind.css --minify"
+    "build:css": "tailwindcss -c tailwind.config.js -i tailwind-input.css -o app.css --minify && cat style.css >> app.css"
   },
   "devDependencies": {
     "tailwindcss": "3.4.17"
