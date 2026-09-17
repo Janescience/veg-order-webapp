@@ -14,7 +14,6 @@
 - [การใช้งาน](#-การใช้งาน)
 - [โครงสร้างโปรเจค](#-โครงสร้างโปรเจค)
 - [การพัฒนา](#-การพัฒนา)
-- [API Documentation](#-api-documentation)
 - [การปรับแต่ง](#-การปรับแต่ง)
 - [การปิดใช้งาน](#-การปิดใช้งาน)
 - [License](#-license)
@@ -111,10 +110,9 @@ script.js มีการแบ่งหมวดหมู่ดังนี้:
    php -S localhost:8000
    ```
 
-3. **เปิดในเบราว์เซอร์**
-   ```
-   http://localhost:8000?customer=TestUser&userId=12345
-   ```
+3. **เปิดผ่าน LINE**
+   หน้าเว็บใช้งานได้เฉพาะเมื่อเปิดผ่าน LIFF ในแอป LINE เท่านั้น
+   ถ้าเปิดในเบราว์เซอร์ทั่วไปจะแสดงข้อความให้สั่งผ่าน LINE OA
 
 ### การติดตั้งแบบ Production
 
@@ -135,18 +133,15 @@ script.js มีการแบ่งหมวดหมู่ดังนี้:
    };
    ```
 
-3. **ตั้งค่า URL parameters**
-   ```
-   https://yourdomain.com/?customer=CustomerName&userId=UniqueUserID
-   ```
+3. **ตั้งค่า LINE**
+   - ตั้ง Endpoint URL ของ LIFF app ให้ชี้มาที่โดเมนที่ deploy
+   - ตั้ง Rich menu ของ LINE OA ให้เปิด `https://liff.line.me/<LIFF_ID>`
 
 ## 📖 การใช้งาน
 
-### พารามิเตอร์ URL
-| Parameter | Description | Required | Example |
-|-----------|-------------|----------|---------|
-| `customer` | ชื่อลูกค้า/ผู้สั่ง | ✅ | `customer=JohnDoe` |
-| `userId` | ID ลูกค้าในระบบ | ✅ | `userId=U1234567890` |
+### การเข้าใช้งาน
+- ลูกค้าต้องเปิดจาก Rich menu ของ LINE OA เท่านั้น
+- ระบบระบุตัวลูกค้าจากบัญชี LINE ที่ login อยู่ (ส่ง LINE access token ไปให้ backend ตรวจสอบ) ไม่รับชื่อหรือ ID ผ่าน URL
 
 ### ขั้นตอนการสั่งซื้อ
 
@@ -279,99 +274,6 @@ veg-order-webapp/
      VALIDATION_ERROR: 'ข้อความ error'
    }
    ```
-
-## 🌐 API Documentation
-
-### Base URL
-- **Production**: `https://deliback.vercel.app/api`
-- **Development**: `http://localhost:3000/api`
-
-### Endpoints
-
-#### GET `/vegetables/available`
-ดึงรายการผักที่วางจำหน่าย
-
-**Response:**
-```json
-[
-  {
-    "nameEng": "Lettuce",
-    "nameTh": "ผักกาดหอม",
-    "price": 25,
-    "image": "lettuce.jpg"
-  }
-]
-```
-
-#### GET `/holidays/schedule`
-ดึงตารางวันหยุดฟาร์ม
-
-**Response:**
-```json
-{
-  "schedule": {
-    "อาทิตย์": false,
-    "จันทร์": true,
-    "อังคาร": true,
-    "พุธ": true,
-    "พฤหัสบดี": true,
-    "ศุกร์": true,
-    "เสาร์": true
-  }
-}
-```
-
-#### GET `/user-order-history?userId={userId}`
-ดึงประวัติการสั่งซื้อของลูกค้า
-
-**Parameters:**
-- `userId` (required): ID ของลูกค้า
-
-**Response:**
-```json
-{
-  "customer": [
-    {
-      "shop": "ร้านค้าA",
-      "method": "โอนเงิน"
-    }
-  ]
-}
-```
-
-#### POST `/orders/handle-order`
-ส่งคำสั่งซื้อใหม่
-
-**Request Body:**
-```json
-{
-  "date": "2024-01-01T10:00:00.000Z",
-  "deliveryDate": "2024-01-02",
-  "user": "ร้านค้าA",
-  "userLine": "CustomerName",
-  "payMethod": "โอนเงิน",
-  "userId": "U1234567890",
-  "order": [
-    {
-      "name": "Lettuce",
-      "nameTh": "ผักกาดหอม",
-      "amount": 2,
-      "price": 25,
-      "subtotal": 50,
-      "image": "lettuce.jpg"
-    }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "orderId": "ORDER123",
-  "message": "Order received successfully"
-}
-```
 
 ## ⚙️ การปรับแต่ง
 
@@ -533,8 +435,8 @@ const FEATURE_FLAGS = {
 **วิธีแก้**:
 ```javascript
 // ตรวจสอบ payload ใน Network tab
+// 401 = ไม่ได้เปิดผ่าน LINE หรือ LINE token หมดอายุ ให้ปิดแล้วเปิดใหม่จาก Rich menu
 // ตรวจสอบ API endpoint
-// ตรวจสอบ CORS settings
 ```
 
 #### 3. Layout เสียบนมือถือ
