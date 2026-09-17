@@ -88,6 +88,57 @@ const Utils = {
     return new URLSearchParams(window.location.search);
   },
 
+  // Always work in Thailand time, whatever the phone's timezone is set to
+  thailandNow() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(new Date()).reduce((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
+
+    return {
+      date: `${parts.year}-${parts.month}-${parts.day}`,
+      hour: Number(parts.hour) % 24,
+      minute: Number(parts.minute)
+    };
+  },
+
+  // 'YYYY-MM-DD' parsed in the phone's own timezone, so the day never shifts
+  parseDate(dateStr) {
+    if (dateStr instanceof Date) return dateStr;
+    const [year, month, day] = String(dateStr).split('T')[0].split('-').map(Number);
+    return new Date(year, month - 1, day);
+  },
+
+  toDateString(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  },
+
+  addDays(dateStr, days) {
+    const date = this.parseDate(dateStr);
+    date.setDate(date.getDate() + days);
+    return this.toDateString(date);
+  },
+
+  isPastCutoff(now = this.thailandNow()) {
+    const { HOUR, MINUTE } = APP_CONFIG.ORDER_CUTOFF_TIME;
+    return now.hour > HOUR || (now.hour === HOUR && now.minute >= MINUTE);
+  },
+
+  // First day the farm can deliver: today before the cutoff, otherwise tomorrow,
+  // then skip farm holidays
+  earliestDeliveryDate() {
+    const now = this.thailandNow();
+    let date = this.isPastCutoff(now) ? this.addDays(now.date, 1) : now.date;
+    for (let i = 0; i < 14 && this.isFarmClosed(date); i++) {
+      date = this.addDays(date, 1);
+    }
+    return date;
+  },
+
   escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -110,13 +161,13 @@ const Utils = {
   },
 
   formatThaiShortDate(dateStr) {
-    const date = new Date(dateStr);
+    const date = this.parseDate(dateStr);
     const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
   },
 
   formatThaiDate(dateStr) {
-    const date = new Date(dateStr);
+    const date = this.parseDate(dateStr);
     const day = THAI_LOCALE.DAYS[date.getDay()];
     const dayNum = date.getDate();
     const month = THAI_LOCALE.MONTHS[date.getMonth()];
@@ -125,16 +176,13 @@ const Utils = {
   },
 
   isFarmClosed(dateStr) {
-    const dayName = THAI_LOCALE.DAYS[new Date(dateStr).getDay()];
+    const dayName = THAI_LOCALE.DAYS[this.parseDate(dateStr).getDay()];
     return AppState.farmSchedule[dayName] === false;
   },
 
   getDeliveryDayText(deliveryDate) {
-    const today = new Date();
-    const delivery = new Date(deliveryDate);
-
-    today.setHours(0,0,0,0);
-    delivery.setHours(0,0,0,0);
+    const today = this.parseDate(this.thailandNow().date);
+    const delivery = this.parseDate(deliveryDate);
 
     const diffTime = delivery - today;
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
@@ -182,20 +230,15 @@ const Utils = {
   },
 
   validateOrderDate(deliveryDate) {
-    const now = new Date();
-    const selectedDate = new Date(deliveryDate);
-    const todayStr = now.toISOString().split("T")[0];
-    const selectedStr = selectedDate.toISOString().split("T")[0];
+    const now = this.thailandNow();
+    const selected = String(deliveryDate).split('T')[0];
 
-    if (selectedStr < todayStr) {
+    if (selected < now.date) {
       throw new Error(ERROR_MESSAGES.BUSINESS.PAST_DATE_SELECTED);
     }
 
-    if (selectedStr === todayStr) {
-      if (now.getHours() > APP_CONFIG.ORDER_CUTOFF_TIME.HOUR ||
-         (now.getHours() === APP_CONFIG.ORDER_CUTOFF_TIME.HOUR && now.getMinutes() >= APP_CONFIG.ORDER_CUTOFF_TIME.MINUTE)) {
-        throw new Error(ERROR_MESSAGES.BUSINESS.ORDER_CUTOFF_PASSED);
-      }
+    if (selected === now.date && this.isPastCutoff(now)) {
+      throw new Error(ERROR_MESSAGES.BUSINESS.ORDER_CUTOFF_PASSED);
     }
   }
 };
@@ -970,58 +1013,12 @@ const PageRenderer = {
   },
 
   setDefaultDeliveryDate() {
-    // ใช้เวลาไทย (UTC+7)
-    const now = new Date();
-    const thaiTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // เพิ่ม 7 ชั่วโมง
+    const deliveryDate = Utils.earliestDeliveryDate();
+    const input = document.getElementById("delivery-date");
 
-    // สร้าง cutoff time สำหรับวันนี้ในเวลาไทย
-    const cutoff = new Date(thaiTime);
-    cutoff.setHours(APP_CONFIG.ORDER_CUTOFF_TIME.HOUR, APP_CONFIG.ORDER_CUTOFF_TIME.MINUTE, 0, 0);
+    input.value = deliveryDate;
+    input.min = deliveryDate;
 
-    // ตั้งวันที่จัดส่งเริ่มต้น
-    let deliveryDate = new Date(thaiTime);
-
-    // DEBUG: แสดงข้อมูลเวลาต่างๆ
-    console.log('=== DEBUG: setDefaultDeliveryDate ===');
-    console.log('Browser Time (now):', now.toString());
-    console.log('Thai Time (UTC+7):', thaiTime.toString());
-    console.log('Thai Date:', thaiTime.getDate());
-    console.log('Thai Day:', THAI_LOCALE.DAYS[thaiTime.getDay()]);
-    console.log('Thai Hours:', thaiTime.getHours());
-    console.log('Thai Minutes:', thaiTime.getMinutes());
-    console.log('Cutoff Time:', cutoff.toString());
-    console.log('Is past cutoff?:', thaiTime.getTime() >= cutoff.getTime());
-
-    // หากเลยเวลา cutoff แล้ว ให้จัดส่งวันถัดไป
-    if (thaiTime.getTime() >= cutoff.getTime()) {
-      deliveryDate.setDate(deliveryDate.getDate() + 1);
-      console.log('Past cutoff - delivery moved to next day');
-    }
-
-    // แปลงเป็น local date string สำหรับ input date
-    let deliveryDateStr = deliveryDate.getFullYear() + '-' +
-                         String(deliveryDate.getMonth() + 1).padStart(2, '0') + '-' +
-                         String(deliveryDate.getDate()).padStart(2, '0');
-
-    console.log('Initial delivery date:', deliveryDateStr);
-
-    // ตรวจสอบว่าฟาร์มปิดหรือไม่
-    if (Utils.isFarmClosed(deliveryDateStr)) {
-      deliveryDate.setDate(deliveryDate.getDate() + 1);
-      deliveryDateStr = deliveryDate.getFullYear() + '-' +
-                       String(deliveryDate.getMonth() + 1).padStart(2, '0') + '-' +
-                       String(deliveryDate.getDate()).padStart(2, '0');
-      console.log('Farm closed - delivery moved to:', deliveryDateStr);
-    }
-
-    console.log('Final delivery date:', deliveryDateStr);
-    console.log('Final delivery day:', THAI_LOCALE.DAYS[deliveryDate.getDay()]);
-    console.log('=====================================');
-
-    document.getElementById("delivery-date").value = deliveryDateStr;
-    document.getElementById("delivery-date").min = deliveryDateStr;
-
-    // Update delivery date display immediately
     updateDeliveryDate();
   },
 
