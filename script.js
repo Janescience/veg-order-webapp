@@ -42,11 +42,19 @@ const ApiService = {
     }
   },
 
-  async fetchCustomerData(userId) {
+  // Backend identifies the customer from this LINE token, not from userId in the request
+  authHeaders() {
+    return { Authorization: `Bearer ${liff.getAccessToken()}` };
+  },
+
+  async fetchCustomerData() {
     try {
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/user-order-history?userId=${encodeURIComponent(userId)}`);
+      const response = await fetch(`${baseUrl}/user-order-history`, {
+        headers: this.authHeaders()
+      });
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
       return data.customer;
     } catch (error) {
       console.error('Failed to fetch customer data:', error);
@@ -59,10 +67,12 @@ const ApiService = {
       const baseUrl = getApiBaseUrl();
       const response = await fetch(`${baseUrl}/orders/handle-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
         body: JSON.stringify(payload)
       });
-      return await response.json();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.message);
+      return data;
     } catch (error) {
       console.error('Failed to submit order:', error);
       throw new Error(ERROR_MESSAGES.NETWORK.SERVER_ERROR);
@@ -217,7 +227,7 @@ const UI = {
   },
 
   showErrorToast() {
-    const toast = document.getElementById("toast-success");
+    const toast = document.getElementById("toast-error");
     if (toast) {
       toast.classList.remove("hidden");
       setTimeout(() => toast.classList.add("hidden"), APP_CONFIG.UI.TOAST_ERROR_DURATION);
@@ -394,9 +404,7 @@ const OrderManager = {
         date: new Date().toISOString(),
         deliveryDate: deliveryDate,
         user: customer,
-        userLine: AppState.customerName,
         payMethod: payMethod,
-        userId: AppState.userId,
         order: summary
       };
 
@@ -784,39 +792,47 @@ const PageRenderer = {
 // ==================================================
 const App = {
   async init() {
-    await this.initCustomerData();
+    const ready = await this.initCustomerData();
+    if (!ready) return;
     await this.fetchInitialData();
   },
 
-  // initCustomerData() {
-  //   const params = Utils.getUrlParams();
-  //   const nameFromUrl = params.get("customer");
-  //   const userIdFromUrl = params.get("userId");
-  //   if (nameFromUrl) AppState.customerName = decodeURIComponent(nameFromUrl);
-  //   if (userIdFromUrl) AppState.userId = userIdFromUrl;
-  // },
+  showOpenFromLineMessage() {
+    const container = document.getElementById("form-container");
+    if (!container) return;
+    container.innerHTML = `
+      <div class="max-w-sm mx-auto text-center px-6 py-12">
+        <img src="logo.png" alt="Halem Farm Logo" class="w-16 h-16 mx-auto mb-4 object-contain" />
+        <p class="text-lg font-semibold text-gray-800 mb-2">กรุณาสั่งผักผ่าน LINE OA</p>
+        <p class="text-sm text-gray-500">เปิด LINE OA ของ Halem Farm แล้วกดเมนู "สั่งผัก" ที่ Rich menu</p>
+      </div>
+    `;
+  },
 
+  // Orders are allowed only from the LIFF app opened inside LINE
   async initCustomerData() {
     try {
       await liff.init({ liffId: "2009829839-v3RobfXt" });
 
+      if (!liff.isInClient()) {
+        this.showOpenFromLineMessage();
+        return false;
+      }
+
       if (!liff.isLoggedIn()) {
         liff.login();
-        return;
+        return false;
       }
 
       const profile = await liff.getProfile();
       AppState.customerName = profile.displayName;
       AppState.userId = profile.userId;
+      return true;
 
     } catch (error) {
       console.error("LIFF init failed:", error);
-      // fallback to URL params
-      const params = Utils.getUrlParams();
-      const nameFromUrl = params.get("customer");
-      const userIdFromUrl = params.get("userId");
-      if (nameFromUrl) AppState.customerName = decodeURIComponent(nameFromUrl);
-      if (userIdFromUrl) AppState.userId = userIdFromUrl;
+      this.showOpenFromLineMessage();
+      return false;
     }
   },
 
@@ -829,7 +845,7 @@ const App = {
       const [vegetablesData, scheduleData, customerData] = await Promise.all([
         ApiService.fetchVegetables(),
         ApiService.fetchSchedule(),
-        ApiService.fetchCustomerData(AppState.userId)
+        ApiService.fetchCustomerData()
       ]);
 
       AppState.vegetables.splice(0, AppState.vegetables.length, ...vegetablesData);
