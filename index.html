@@ -13,13 +13,9 @@
   <title>Halem Farm - ระบบสั่งซื้อผักออร์แกนิค</title>
   <link rel="icon" href="logo.png" type="image/png">
 
-  <!-- Fonts (self-hosted Kanit) -->
+  <!-- Styles: fonts + tailwind + base in one prebuilt file (npm run build:css) -->
   <link rel="preload" href="fonts/kanit-400-thai.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="fonts.css?v=7">
-
-  <!-- Styles (tailwind.css is prebuilt: npm run build:css) -->
-  <link rel="stylesheet" href="tailwind.css?v=7" />
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="app.css?v=8" />
 </head>
 <body class="bg-stone-100 font-sans font-light text-gray-800 antialiased">
   <div id="toast-success" class="hidden fixed inset-0 flex items-center justify-center z-50 px-6">
@@ -52,8 +48,8 @@
   </main>
 
   <!-- Scripts -->
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="config.js?v=7"></script>
-  <script src="script.js?v=7"></script>
+  <script charset="utf-8" defer src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script defer src="config.js?v=8"></script>
+  <script defer src="script.js?v=8"></script>
 </body>
 </html>
