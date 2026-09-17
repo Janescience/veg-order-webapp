@@ -195,20 +195,43 @@ const Utils = {
 // ==================================================
 // 🎨 UI COMPONENTS & DOM MANIPULATION
 // ==================================================
+// Inline Lucide icons (only the ones this app uses) so no icon library is loaded
+const ICON_PATHS = {
+  "arrow-left": '<path d="m12 19-7-7 7-7" /> <path d="M19 12H5" />',
+  "arrow-right": '<path d="M5 12h14" /> <path d="m12 5 7 7-7 7" />',
+  "calendar-days": '<path d="M8 2v4" /> <path d="M16 2v4" /> <rect width="18" height="18" x="3" y="4" rx="2" /> <path d="M3 10h18" /> <path d="M8 14h.01" /> <path d="M12 14h.01" /> <path d="M16 14h.01" /> <path d="M8 18h.01" /> <path d="M12 18h.01" /> <path d="M16 18h.01" />',
+  "check": '<path d="M20 6 9 17l-5-5" />',
+  "chevron-down": '<path d="m6 9 6 6 6-6" />',
+  "circle-alert": '<circle cx="12" cy="12" r="10" /> <line x1="12" x2="12" y1="8" y2="12" /> <line x1="12" x2="12.01" y1="16" y2="16" />',
+  "clock": '<path d="M12 6v6l4 2" /> <circle cx="12" cy="12" r="10" />',
+  "download": '<path d="M12 15V3" /> <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /> <path d="m7 10 5 5 5-5" />',
+  "image-down": '<path d="M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21" /> <path d="m14 19 3 3v-5.5" /> <path d="m17 22 3-3" /> <circle cx="9" cy="9" r="2" />',
+  "leaf": '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /> <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />',
+  "list-checks": '<path d="m3 17 2 2 4-4" /> <path d="m3 7 2 2 4-4" /> <path d="M13 6h8" /> <path d="M13 12h8" /> <path d="M13 18h8" />',
+  "loader-circle": '<path d="M21 12a9 9 0 1 1-6.219-8.56" />',
+  "message-circle": '<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />',
+  "plus": '<path d="M5 12h14" /> <path d="M12 5v14" />',
+  "pointer": '<path d="M22 14a8 8 0 0 1-8 8" /> <path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2" /> <path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1" /> <path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10" /> <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />',
+  "share-2": '<circle cx="18" cy="5" r="3" /> <circle cx="6" cy="12" r="3" /> <circle cx="18" cy="19" r="3" /> <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /> <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />',
+  "sprout": '<path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3" /> <path d="M4 9a5 5 0 0 1 8 4 5 5 0 0 1-8-4" /> <path d="M5 21h14" />',
+  "store": '<path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5" /> <path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244" /> <path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05" />',
+  "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /> <path d="M15 18H9" /> <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /> <circle cx="17" cy="18" r="2" /> <circle cx="7" cy="18" r="2" />',
+  "user-plus": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <circle cx="9" cy="7" r="4" /> <line x1="19" x2="19" y1="8" y2="14" /> <line x1="22" x2="16" y1="11" y2="11" />',
+  "wallet": '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" /> <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />',
+  "x": '<path d="M18 6 6 18" /> <path d="m6 6 12 12" />',
+};
+
+const ICON_SVG_ATTRS = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+
 const UI = {
   icon(name, className = "w-4 h-4") {
-    return `<i data-lucide="${name}" class="${className}"></i>`;
-  },
-
-  // Replace <i data-lucide> placeholders with SVG icons after each render
-  renderIcons() {
-    if (window.lucide) lucide.createIcons();
+    return `<svg ${ICON_SVG_ATTRS} class="${className}">${ICON_PATHS[name] || ""}</svg>`;
   },
 
   header() {
     return `
       <header class="flex items-center justify-center gap-3">
-        <img src="logo.png" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
+        <img src="logo.png" alt="Halem Farm Logo" width="48" height="48" class="w-12 h-12 object-contain" />
         <div class="leading-tight">
           <div class="text-2xl font-medium tracking-wide text-gray-900">HALEM FARM</div>
           <div class="text-sm text-gray-600">สั่งผักออร์แกนิคจากฟาร์ม</div>
@@ -246,7 +269,6 @@ const UI = {
     const targetId = sectionMapping[section] || "form-container";
     const element = document.getElementById(targetId);
     if (element) element.innerHTML = spinnerHTML;
-    this.renderIcons();
   },
 
   hideLoading(section = "all") {
@@ -271,7 +293,6 @@ const UI = {
   showSuccessToast() {
     const toast = document.getElementById("toast-success");
     if (toast) {
-      this.renderIcons();
       toast.classList.remove("hidden");
       setTimeout(() => toast.classList.add("hidden"), APP_CONFIG.UI.TOAST_SUCCESS_DURATION);
     }
@@ -282,7 +303,6 @@ const UI = {
     if (toast) {
       const messageEl = document.getElementById("toast-error-message");
       if (messageEl && message) messageEl.innerText = message;
-      this.renderIcons();
       toast.classList.remove("hidden");
       setTimeout(() => toast.classList.add("hidden"), APP_CONFIG.UI.TOAST_ERROR_DURATION);
     }
@@ -331,7 +351,7 @@ const UI = {
     return AppState.vegetables.map((veg, index) => `
       <div class="flex items-center gap-3 py-3">
         <div class="w-16 h-16 shrink-0 rounded-2xl bg-stone-50 flex items-center justify-center overflow-hidden">
-          <img src="${esc(veg.image)}" alt="${esc(veg.nameTh)}" loading="lazy" class="w-12 h-12 object-contain" />
+          <img src="${esc(veg.image)}" alt="${esc(veg.nameTh)}" loading="lazy" decoding="async" width="48" height="48" class="w-12 h-12 object-contain" />
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-lg text-gray-900 font-normal leading-snug truncate">${esc(veg.nameTh)}</div>
@@ -519,7 +539,7 @@ const OrderManager = {
 
         <div id="receipt" class="bg-white rounded-3xl shadow-float px-4 py-5 text-base font-light text-gray-700">
           <div class="flex flex-col items-center text-center">
-            <img src="logo.png" alt="Halem Farm Logo" class="w-16 h-16 object-contain mb-1" />
+            <img src="logo.png" alt="Halem Farm Logo" width="64" height="64" class="w-16 h-16 object-contain mb-1" />
             <div class="text-xl font-medium tracking-wide text-gray-900">HALEM FARM</div>
             <div class="text-sm text-gray-500">ผักออร์แกนิคจากฟาร์ม</div>
             <div class="mt-3 rounded-full bg-stone-100 px-4 py-1 text-sm tracking-wide text-gray-700">ใบสั่งซื้อ</div>
@@ -599,7 +619,6 @@ const OrderManager = {
 
     document.getElementById("form-container").innerHTML = html;
     window.scrollTo(0, 0);
-    UI.renderIcons();
     setTimeout(() => UI.showSuccessToast(), 100);
   }
 };
@@ -612,7 +631,20 @@ const ReceiptActions = {
     return `halem-farm-${AppState.lastReceipt?.reference || "order"}.png`;
   },
 
+  // The image library is only needed when someone saves or shares, so load it on demand
+  async loadImageLibrary() {
+    if (window.htmlToImage) return;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js";
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("ไม่สามารถโหลดตัวสร้างรูปได้"));
+      document.head.appendChild(script);
+    });
+  },
+
   async toBlob() {
+    await this.loadImageLibrary();
     const node = document.getElementById("receipt");
     const options = {
       pixelRatio: 3,
@@ -630,7 +662,6 @@ const ReceiptActions = {
     if (button) {
       button.disabled = true;
       button.innerHTML = `${UI.icon("loader-circle", "w-5 h-5 animate-spin")} ${text}`;
-      UI.renderIcons();
     }
     try {
       await task();
@@ -641,7 +672,6 @@ const ReceiptActions = {
       if (button) {
         button.disabled = false;
         button.innerHTML = original;
-        UI.renderIcons();
       }
     }
   },
@@ -711,7 +741,6 @@ const ReceiptActions = {
       if (e.target === overlay || e.target.closest("#close-preview-btn")) close();
     });
     document.body.appendChild(overlay);
-    UI.renderIcons();
   },
 
   buildFlexMessage() {
@@ -783,7 +812,6 @@ const PageRenderer = {
         </section>
       </div>
     `;
-    UI.renderIcons();
   },
 
   renderForm() {
@@ -861,7 +889,6 @@ const PageRenderer = {
 
     this.setupEventListeners();
     this.setDefaultDeliveryDate();
-    UI.renderIcons();
   },
 
   setupEventListeners() {
@@ -1064,7 +1091,6 @@ const PageRenderer = {
     `;
 
     window.scrollTo(0, 0);
-    UI.renderIcons();
     checkAllConfirmed();
   }
 };
@@ -1098,7 +1124,6 @@ const App = {
         </section>
       </div>
     `;
-    UI.renderIcons();
   },
 
   // Orders are allowed only from the LIFF app opened inside LINE
@@ -1180,7 +1205,6 @@ function updateDeliveryDate() {
          <span class="text-base font-medium">วันหยุดฟาร์ม กรุณาเลือกวันอื่น</span>
        </div>`
     : "";
-  UI.renderIcons();
   OrderManager.checkEnableConfirmButton();
 }
 

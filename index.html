@@ -13,33 +13,19 @@
   <title>Halem Farm - ระบบสั่งซื้อผักออร์แกนิค</title>
   <link rel="icon" href="logo.png" type="image/png">
 
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet" crossorigin="anonymous">
+  <!-- Fonts (self-hosted Kanit) -->
+  <link rel="preload" href="fonts/kanit-400-thai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts.css?v=7">
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Kanit', 'sans-serif'] },
-          boxShadow: {
-            float: '0 6px 24px -8px rgba(15, 23, 42, 0.12)',
-            'float-lg': '0 12px 32px -10px rgba(15, 23, 42, 0.25)'
-          }
-        }
-      }
-    };
-  </script>
-
-  <!-- Custom Styles -->
-  <link rel="stylesheet" href="style.css?v=6" />
+  <!-- Styles (tailwind.css is prebuilt: npm run build:css) -->
+  <link rel="stylesheet" href="tailwind.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body class="bg-stone-100 font-sans font-light text-gray-800 antialiased">
   <div id="toast-success" class="hidden fixed inset-0 flex items-center justify-center z-50 px-6">
     <div class="bg-white shadow-float-lg rounded-3xl px-8 py-6 flex flex-col items-center animate-fade-in-out">
       <div class="w-14 h-14 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-3">
-        <i data-lucide="check" class="w-7 h-7"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
       <p class="text-gray-800 text-base text-center">
         สั่งซื้อสำเร็จ<br/><span class="text-sm text-gray-500">ทางฟาร์มได้รับคำสั่งซื้อเรียบร้อยแล้ว</span>
@@ -50,7 +36,7 @@
   <div id="toast-error" class="hidden fixed inset-0 flex items-center justify-center z-50 px-6">
     <div class="bg-white shadow-float-lg rounded-3xl px-8 py-6 flex flex-col items-center animate-fade-in-out">
       <div class="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-3">
-        <i data-lucide="x" class="w-7 h-7"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </div>
       <p class="text-gray-800 text-base text-center">
         เกิดข้อผิดพลาด<br/><span id="toast-error-message" class="text-sm text-gray-500">กรุณาติดต่อผู้ดูแลระบบ ขออภัยในความไม่สะดวก</span>
@@ -67,9 +53,7 @@
 
   <!-- Scripts -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.542.0/dist/umd/lucide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js"></script>
-  <script src="config.js?v=6"></script>
-  <script src="script.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>
