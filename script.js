@@ -101,6 +101,12 @@ const Utils = {
     return Number(amount).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   },
 
+  formatThaiShortDate(dateStr) {
+    const date = new Date(dateStr);
+    const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
+  },
+
   formatThaiDate(dateStr) {
     const date = new Date(dateStr);
     const day = THAI_LOCALE.DAYS[date.getDay()];
@@ -201,11 +207,11 @@ const UI = {
 
   header() {
     return `
-      <header class="flex items-center justify-center gap-3 pt-2 pb-1">
-        <img src="logo.png" alt="Halem Farm Logo" class="w-11 h-11 object-contain" />
+      <header class="flex items-center justify-center gap-3">
+        <img src="logo.png" alt="Halem Farm Logo" class="w-12 h-12 object-contain" />
         <div class="leading-tight">
-          <div class="text-xl font-medium tracking-wide text-gray-900">HALEM FARM</div>
-          <div class="text-xs text-gray-500">สั่งผักออร์แกนิคจากฟาร์ม</div>
+          <div class="text-2xl font-medium tracking-wide text-gray-900">HALEM FARM</div>
+          <div class="text-sm text-gray-600">สั่งผักออร์แกนิคจากฟาร์ม</div>
         </div>
       </header>
     `;
@@ -213,13 +219,15 @@ const UI = {
 
   sectionLabel(icon, text, extra = "") {
     return `
-      <div class="flex items-center gap-2 text-sm text-gray-500 mb-3">
-        ${this.icon(icon, "w-4 h-4 text-gray-400")}
-        <span>${text}</span>
+      <div class="flex items-center gap-1.5 text-sm text-gray-600 mb-2">
+        ${this.icon(icon, "w-4 h-4 shrink-0 text-gray-500")}
+        <span class="truncate">${text}</span>
         ${extra}
       </div>
     `;
   },
+
+  bottomBarClass: "fixed inset-x-0 bottom-0 z-40 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] bg-gradient-to-t from-stone-100 via-stone-100/90 to-transparent",
 
   showLoading(section = "all", text = "กำลังโหลดข้อมูล...") {
     const spinnerHTML = `
@@ -285,9 +293,9 @@ const UI = {
     const esc = Utils.escapeHtml;
 
     if (shops.length >= 2) {
-      const chipClass = "inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-4 py-2 text-sm text-gray-700 transition peer-checked:bg-green-600 peer-checked:text-white peer-checked:shadow-float peer-focus-visible:ring-2 peer-focus-visible:ring-green-500/40";
+      const chipClass = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-stone-100 px-4 py-2 text-base text-gray-800 transition peer-checked:bg-green-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-green-500/40";
       const shopChips = shops.map((c, i) => `
-        <label class="cursor-pointer">
+        <label class="cursor-pointer shrink-0">
           <input type="radio" name="customer-choice" value="${esc(c.shop)}"
                  class="peer sr-only" id="shop-${i}" ${i === 0 ? "checked" : ""} />
           <span class="${chipClass}">${esc(c.shop)}</span>
@@ -295,40 +303,40 @@ const UI = {
       `).join("");
 
       return `
-        ${this.sectionLabel("store", "เลือกร้านที่เคยสั่ง")}
-        <div class="flex flex-wrap gap-2">
+        ${this.sectionLabel("store", "ร้าน")}
+        <div class="-mx-4 px-4 pb-1 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           ${shopChips}
-          <label class="cursor-pointer">
+          <label class="cursor-pointer shrink-0">
             <input type="radio" name="customer-choice" value="__NEW__" class="peer sr-only" id="shop-new" />
-            <span class="${chipClass}">${this.icon("plus", "w-3.5 h-3.5")} ร้านใหม่</span>
+            <span class="${chipClass}">${this.icon("plus", "w-4 h-4")} ร้านใหม่</span>
           </label>
         </div>
-        <div id="new-shop-input" class="hidden mt-3">
+        <div id="new-shop-input" class="hidden mt-2">
           <input id="customer-new" type="text" placeholder="กรอกชื่อร้านใหม่"
-                 class="w-full rounded-full bg-stone-100 px-4 py-2.5 text-gray-900 placeholder-gray-400" />
+                 class="w-full rounded-full bg-stone-100 px-4 py-2.5 text-base text-gray-900 placeholder-gray-500" />
         </div>
       `;
     }
 
     const defaultShop = shops[0]?.shop || "";
     return `
-      ${this.sectionLabel("store", "ชื่อร้าน", '<span class="ml-auto text-xs text-red-500">จำเป็น</span>')}
+      ${this.sectionLabel("store", "ชื่อร้าน", '<span class="ml-auto text-sm text-red-600">จำเป็น</span>')}
       <input id="customer-new" type="text" placeholder="กรุณากรอกชื่อร้าน"
-             class="w-full rounded-full bg-stone-100 px-4 py-2.5 text-gray-900 placeholder-gray-400" value="${esc(defaultShop)}" />
+             class="w-full rounded-full bg-stone-100 px-4 py-2.5 text-base text-gray-900 placeholder-gray-500" value="${esc(defaultShop)}" />
     `;
   },
 
   generateVegetablesSection() {
     const esc = Utils.escapeHtml;
     return AppState.vegetables.map((veg, index) => `
-      <div class="flex items-center gap-3 py-2.5">
-        <div class="w-14 h-14 shrink-0 rounded-2xl bg-stone-50 flex items-center justify-center overflow-hidden">
-          <img src="${esc(veg.image)}" alt="${esc(veg.nameTh)}" loading="lazy" class="w-11 h-11 object-contain" />
+      <div class="flex items-center gap-3 py-3">
+        <div class="w-16 h-16 shrink-0 rounded-2xl bg-stone-50 flex items-center justify-center overflow-hidden">
+          <img src="${esc(veg.image)}" alt="${esc(veg.nameTh)}" loading="lazy" class="w-12 h-12 object-contain" />
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-gray-900 font-normal truncate">${esc(veg.nameTh)}</div>
-          <div class="text-xs text-gray-400 truncate">${esc(veg.nameEng)}</div>
-          <div class="text-xs text-gray-500">${veg.price} บ./กก.</div>
+          <div class="text-lg text-gray-900 font-normal leading-snug truncate">${esc(veg.nameTh)}</div>
+          <div class="text-sm text-gray-500 truncate">${esc(veg.nameEng)}</div>
+          <div class="text-base text-green-700 font-medium">${veg.price} บ./กก.</div>
         </div>
         <div class="w-28 shrink-0 text-right">
           <div class="relative">
@@ -336,11 +344,11 @@ const UI = {
                    data-name="${esc(veg.nameEng)}" data-nameth="${esc(veg.nameTh)}"
                    data-price="${veg.price}" data-image="${esc(veg.image)}"
                    placeholder="0"
-                   class="input-box w-full rounded-full bg-stone-100 pl-3 pr-9 py-2 text-right text-gray-900 placeholder-gray-400"
+                   class="input-box w-full rounded-full bg-stone-100 pl-3 pr-10 py-2.5 text-right text-lg text-gray-900 placeholder-gray-400"
                    oninput="OrderManager.updateItemTotal(this)" />
-            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">กก.</span>
+            <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">กก.</span>
           </div>
-          <div class="text-xs text-gray-500 mt-1"><span id="total-${index}" class="text-gray-900">0</span> บ.</div>
+          <div class="text-sm text-gray-600 mt-1"><span id="total-${index}" class="text-base text-gray-900 font-medium">0</span> บ.</div>
         </div>
       </div>
     `).join('');
@@ -482,8 +490,8 @@ const OrderManager = {
     AppState.lastReceipt = { ...receipt, reference, totalKg, totalBaht };
 
     const infoRow = (label, value) => `
-      <div class="flex justify-between gap-4 py-0.5">
-        <span class="text-gray-400 shrink-0">${label}</span>
+      <div class="flex justify-between gap-4 py-1">
+        <span class="text-gray-500 shrink-0">${label}</span>
         <span class="text-gray-900 text-right">${value}</span>
       </div>
     `;
@@ -491,53 +499,58 @@ const OrderManager = {
 
     const paymentTerms = payMethod === 'โอนเงิน'
       ? `กรุณาโอนชำระเงินภายใน 3 วัน นับจากวันจัดส่งสินค้า<br/>
-         ธนาคารกสิกรไทย เลขที่บัญชี <span class="text-gray-900 tabular-nums">113-8-48085-9</span><br/>
+         ธนาคารกสิกรไทย เลขที่บัญชี <span class="text-gray-900 font-medium tabular-nums">113-8-48085-9</span><br/>
          ชื่อบัญชี นายฮาเล็ม เจะมาริกัน`
       : payMethod === 'เครดิต'
         ? `กรุณาชำระเงินหลังจากวางบิลภายใน 7 วัน`
         : `กรุณาชำระเงินภายในวันจัดส่งสินค้า`;
 
     const html = `
-      <div class="max-w-md mx-auto px-4 pt-6 pb-36 animate-fade-in">
-        <div class="flex flex-col items-center text-center mb-5">
-          <div class="w-14 h-14 rounded-full bg-green-600 text-white shadow-float-lg flex items-center justify-center mb-3">
-            ${UI.icon("check", "w-7 h-7")}
+      <div class="w-full max-w-lg mx-auto px-2 pt-3 pb-40 animate-fade-in">
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-full bg-green-600 text-white shadow-float flex items-center justify-center">
+            ${UI.icon("check", "w-6 h-6")}
           </div>
-          <div class="text-lg text-gray-900 font-normal">สั่งซื้อเรียบร้อยแล้ว</div>
-          <div class="text-sm text-gray-500">บันทึกหรือแชร์ใบสั่งซื้อเก็บไว้เป็นหลักฐานได้</div>
+          <div class="leading-tight">
+            <div class="text-lg text-gray-900 font-normal">สั่งซื้อเรียบร้อยแล้ว</div>
+            <div class="text-sm text-gray-600">บันทึกหรือแชร์ใบสั่งซื้อเก็บไว้ได้</div>
+          </div>
         </div>
 
-        <div id="receipt" class="bg-white rounded-3xl shadow-float px-5 py-6 text-sm font-light text-gray-600">
+        <div id="receipt" class="bg-white rounded-3xl shadow-float px-4 py-5 text-base font-light text-gray-700">
           <div class="flex flex-col items-center text-center">
-            <img src="logo.png" alt="Halem Farm Logo" class="w-14 h-14 object-contain mb-1" />
-            <div class="text-base font-medium tracking-wide text-gray-900">HALEM FARM</div>
-            <div class="text-xs text-gray-400">ผักออร์แกนิคจากฟาร์ม</div>
-            <div class="mt-3 rounded-full bg-stone-100 px-4 py-1 text-xs tracking-wide text-gray-600">ใบสั่งซื้อ</div>
-            ${isReplacement ? `<div class="mt-2 text-xs text-amber-600">แก้ไขคำสั่งซื้อเดิมของวันจัดส่งนี้</div>` : ""}
+            <img src="logo.png" alt="Halem Farm Logo" class="w-16 h-16 object-contain mb-1" />
+            <div class="text-xl font-medium tracking-wide text-gray-900">HALEM FARM</div>
+            <div class="text-sm text-gray-500">ผักออร์แกนิคจากฟาร์ม</div>
+            <div class="mt-3 rounded-full bg-stone-100 px-4 py-1 text-sm tracking-wide text-gray-700">ใบสั่งซื้อ</div>
+            ${isReplacement ? `<div class="mt-2 text-sm text-amber-700">แก้ไขคำสั่งซื้อเดิมของวันจัดส่งนี้</div>` : ""}
           </div>
 
           ${divider}
 
           ${infoRow("เลขที่อ้างอิง", `<span class="tabular-nums">#${reference}</span>`)}
-          ${infoRow("วันที่สั่ง", `${Utils.formatThaiDate(orderedAt)} ${orderedTime}`)}
-          ${infoRow("วันที่จัดส่ง", Utils.formatThaiDate(deliveryDate))}
-          ${infoRow("ร้าน", esc(customer))}
+          ${infoRow("วันที่สั่ง", `${Utils.formatThaiShortDate(orderedAt)} ${orderedTime}`)}
+          ${infoRow("ร้าน", `<span class="font-medium">${esc(customer)}</span>`)}
           ${infoRow("สั่งโดย", esc(AppState.customerName))}
           ${infoRow("ชำระเงิน", esc(payMethod))}
+          <div class="mt-2 flex items-center justify-between gap-3 rounded-2xl bg-green-50 px-3 py-2.5">
+            <span class="flex items-center gap-1.5 text-green-800">${UI.icon("truck", "w-5 h-5")} วันที่จัดส่ง</span>
+            <span class="text-green-800 font-medium text-right">${Utils.formatThaiDate(deliveryDate)}</span>
+          </div>
 
           ${divider}
 
-          <div class="flex justify-between text-xs text-gray-400 mb-2">
+          <div class="flex justify-between text-sm text-gray-500 mb-1">
             <span>รายการ</span>
             <span>จำนวนเงิน (บาท)</span>
           </div>
           ${summary.map((item) => `
-            <div class="py-1.5">
+            <div class="py-2">
               <div class="flex justify-between gap-4">
                 <span class="text-gray-900">${esc(item.nameTh || item.name)}</span>
-                <span class="text-gray-900 tabular-nums">${money(item.subtotal)}</span>
+                <span class="text-gray-900 font-medium tabular-nums">${money(item.subtotal)}</span>
               </div>
-              <div class="text-xs text-gray-400 tabular-nums">${item.amount.toFixed(2)} กก. × ${money(item.price)}</div>
+              <div class="text-sm text-gray-600 tabular-nums">${item.amount.toFixed(2)} กก. × ${money(item.price)}</div>
             </div>
           `).join("")}
 
@@ -545,38 +558,38 @@ const OrderManager = {
 
           ${infoRow("จำนวนรายการ", `${summary.length} รายการ`)}
           ${infoRow("น้ำหนักรวม", `<span class="tabular-nums">${totalKg.toFixed(2)}</span> กก.`)}
-          <div class="flex justify-between items-baseline gap-4 mt-2">
-            <span class="text-gray-900 font-normal">ยอดสุทธิ</span>
-            <span class="text-2xl text-gray-900 font-medium tabular-nums">${money(totalBaht)}</span>
+          <div class="flex justify-between items-baseline gap-4 mt-3">
+            <span class="text-lg text-gray-900 font-normal">ยอดสุทธิ</span>
+            <span class="text-3xl text-gray-900 font-medium tabular-nums">${money(totalBaht)}</span>
           </div>
-          <div class="text-xs text-gray-400 text-right">(${Utils.convertNumberToThaiText(totalBaht)})</div>
+          <div class="text-sm text-gray-600 text-right">(${Utils.convertNumberToThaiText(totalBaht)})</div>
 
           ${divider}
 
-          <div class="text-xs leading-relaxed">
-            <div class="text-gray-900 mb-1">เงื่อนไขการชำระเงิน</div>
+          <div class="text-sm leading-relaxed text-gray-700">
+            <div class="text-base text-gray-900 mb-1">เงื่อนไขการชำระเงิน</div>
             ${paymentTerms}
           </div>
 
           ${divider}
 
-          <div class="text-center text-xs text-gray-400">
+          <div class="text-center text-sm text-gray-500">
             ขอบคุณที่ใช้บริการ Halem Farm
           </div>
         </div>
 
-        <button onclick="ReceiptActions.close()" class="no-print mt-5 mx-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-gray-500 bg-transparent">
-          ${UI.icon("x", "w-4 h-4")} ปิดหน้านี้
+        <button onclick="ReceiptActions.close()" class="no-print mt-4 mx-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-base text-gray-600 bg-transparent">
+          ${UI.icon("x", "w-5 h-5")} ปิดหน้านี้
         </button>
 
-        <div class="no-print fixed inset-x-0 bottom-0 px-4 pb-5 pt-2">
-          <div class="max-w-md mx-auto flex gap-3">
+        <div class="no-print ${UI.bottomBarClass}">
+          <div class="max-w-lg mx-auto flex gap-3">
             <button id="save-receipt-btn" onclick="ReceiptActions.save()"
-                    class="flex-1 flex items-center justify-center gap-2 rounded-full bg-white text-gray-800 shadow-float-lg px-5 py-3.5">
+                    class="flex-1 flex items-center justify-center gap-2 rounded-full bg-white text-gray-900 text-base shadow-float-lg px-5 py-4">
               ${UI.icon("image-down", "w-5 h-5")} บันทึกรูป
             </button>
             <button id="share-receipt-btn" onclick="ReceiptActions.share()"
-                    class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white shadow-float-lg px-5 py-3.5">
+                    class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white text-base shadow-float-lg px-5 py-4">
               ${UI.icon("share-2", "w-5 h-5")} แชร์
             </button>
           </div>
@@ -778,46 +791,51 @@ const PageRenderer = {
     const cutoff = `${String(APP_CONFIG.ORDER_CUTOFF_TIME.HOUR).padStart(2, '0')}:${String(APP_CONFIG.ORDER_CUTOFF_TIME.MINUTE).padStart(2, '0')}`;
 
     container.innerHTML = `
-      <div class="w-full max-w-lg mx-auto px-4 pt-4 pb-32 space-y-3">
+      <div class="w-full max-w-lg mx-auto px-3 pt-3 pb-36">
         ${UI.header()}
 
-        <div class="flex justify-center">
-          <div class="inline-flex items-center gap-1.5 rounded-full bg-white shadow-float px-3 py-1.5 text-xs text-gray-600">
-            ${UI.icon("clock", "w-3.5 h-3.5 text-gray-400")}
-            สั่งก่อน ${cutoff} น. จัดส่งภายในวันนี้ หลังจากนั้นส่งวันถัดไป
+        <div class="flex justify-center mt-2">
+          <div class="inline-flex items-center gap-1.5 rounded-full bg-white shadow-float px-3 py-1.5 text-sm text-gray-700">
+            ${UI.icon("clock", "w-4 h-4 text-gray-500")}
+            สั่งก่อน ${cutoff} น. ส่งวันนี้ หลังจากนั้นส่งวันถัดไป
           </div>
         </div>
 
-        <section id="customer-section" class="bg-white rounded-3xl shadow-float p-4">
-          ${UI.generateCustomerSection()}
-        </section>
-
-        <section class="bg-white rounded-3xl shadow-float p-4 space-y-4">
-          <div>
-            ${UI.sectionLabel("wallet", "วิธีชำระเงิน", '<span class="ml-auto text-xs text-red-500">จำเป็น</span>')}
-            <div class="relative">
-              <select id="pay-method" class="w-full rounded-full bg-stone-100 pl-4 pr-10 py-2.5 text-gray-900">
-                <option value="" selected>เลือกวิธีชำระเงิน</option>
-                <option value="เงินสด">เงินสดธนบัตร</option>
-                <option value="โอนเงิน">เงินสดโอนเงิน</option>
-                <option value="เครดิต">เครดิต</option>
-              </select>
-              ${UI.icon("chevron-down", "w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none")}
+        <!-- Order details stay pinned while the vegetable list scrolls -->
+        <div class="sticky top-0 z-30 -mx-3 px-3 pt-3 pb-2 bg-stone-100">
+          <section class="bg-white rounded-3xl shadow-float p-4">
+            <div id="customer-section">
+              ${UI.generateCustomerSection()}
             </div>
-          </div>
 
-          <div>
-            ${UI.sectionLabel("calendar-days", "วันที่จัดส่ง")}
-            <input id="delivery-date" type="date" onchange="updateDeliveryDate()"
-                   class="w-full min-h-[44px] rounded-full bg-stone-100 px-4 py-2.5 text-left text-gray-900" />
-            <div id="delivery-info" class="mt-2 px-1 text-sm">
-              <span id="formatted-date" class="text-green-700"></span>
-              <span id="holiday-warning" class="text-red-500"></span>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div class="min-w-0">
+                ${UI.sectionLabel("wallet", "วิธีชำระเงิน")}
+                <div class="relative">
+                  <select id="pay-method" class="w-full min-h-[46px] rounded-full bg-stone-100 pl-4 pr-9 py-2.5 text-base text-gray-900">
+                    <option value="" selected>เลือก</option>
+                    <option value="เงินสด">เงินสดธนบัตร</option>
+                    <option value="โอนเงิน">เงินสดโอนเงิน</option>
+                    <option value="เครดิต">เครดิต</option>
+                  </select>
+                  ${UI.icon("chevron-down", "w-4 h-4 text-gray-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none")}
+                </div>
+              </div>
+              <div class="min-w-0">
+                ${UI.sectionLabel("calendar-days", "วันที่จัดส่ง")}
+                <input id="delivery-date" type="date" onchange="updateDeliveryDate()"
+                       class="w-full min-h-[46px] rounded-full bg-stone-100 px-4 py-2.5 text-left text-base text-gray-900" />
+              </div>
             </div>
-          </div>
-        </section>
 
-        <section class="bg-white rounded-3xl shadow-float p-4">
+            <div id="delivery-info" class="mt-3">
+              <span id="formatted-date"></span>
+              <span id="holiday-warning"></span>
+            </div>
+          </section>
+        </div>
+
+        <section class="bg-white rounded-3xl shadow-float px-4 pt-3 pb-1 mt-1">
           ${UI.sectionLabel("leaf", "รายการผัก")}
           <div id="vegetables-section" class="divide-y divide-stone-100">
             ${UI.generateVegetablesSection()}
@@ -825,17 +843,17 @@ const PageRenderer = {
         </section>
       </div>
 
-      <div class="fixed inset-x-0 bottom-0 px-4 pb-5 pt-2 z-40">
-        <div class="max-w-lg mx-auto flex items-center justify-between gap-3 rounded-full bg-white/95 backdrop-blur shadow-float-lg py-2 pl-5 pr-2">
-          <div class="leading-tight">
-            <div class="text-xs text-gray-400">รวมทั้งหมด</div>
-            <div class="text-gray-900 tabular-nums">
+      <div class="${UI.bottomBarClass}">
+        <div class="max-w-lg mx-auto flex items-center justify-between gap-3 rounded-full bg-white shadow-float-lg py-2 pl-5 pr-2">
+          <div class="leading-tight min-w-0">
+            <div class="text-sm text-gray-600">รวมทั้งหมด</div>
+            <div class="text-lg text-gray-900 font-medium tabular-nums whitespace-nowrap">
               <span id="total-amount">0.0</span> กก. · <span id="total-price">0</span> บ.
             </div>
           </div>
           <button id="check-order-btn" onclick="confirmOrder()" disabled
-                  class="flex items-center gap-2 rounded-full bg-green-600 text-white px-5 py-3 shadow-float opacity-50 cursor-not-allowed">
-            ตรวจสอบ ${UI.icon("arrow-right", "w-4 h-4")}
+                  class="shrink-0 flex items-center gap-2 rounded-full bg-green-600 text-white text-base px-6 py-3.5 shadow-float opacity-50 cursor-not-allowed">
+            ตรวจสอบ ${UI.icon("arrow-right", "w-5 h-5")}
           </button>
         </div>
       </div>
@@ -962,53 +980,61 @@ const PageRenderer = {
     const deliveryDayText = Utils.getDeliveryDayText(deliveryDate);
 
     const infoRow = (icon, label, value) => `
-      <div class="flex items-center gap-3 py-1.5">
-        <div class="w-9 h-9 shrink-0 rounded-full bg-stone-100 text-gray-500 flex items-center justify-center">
-          ${UI.icon(icon, "w-4 h-4")}
+      <div class="flex items-center gap-3 py-2">
+        <div class="w-10 h-10 shrink-0 rounded-full bg-stone-100 text-gray-600 flex items-center justify-center">
+          ${UI.icon(icon, "w-5 h-5")}
         </div>
-        <div class="leading-tight min-w-0">
-          <div class="text-xs text-gray-400">${label}</div>
-          <div class="text-gray-900 break-words">${value}</div>
+        <div class="leading-snug min-w-0">
+          <div class="text-sm text-gray-600">${label}</div>
+          <div class="text-lg text-gray-900 break-words">${value}</div>
         </div>
       </div>
     `;
 
     const checkRow = (text) => `
-      <label class="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-3 cursor-pointer">
-        <input type="checkbox" class="check-confirm w-5 h-5 shrink-0 accent-green-600" onchange="checkAllConfirmed()">
-        <span class="text-sm text-gray-700">${text}</span>
+      <label class="flex items-center gap-3 rounded-2xl bg-stone-100 px-4 py-3.5 cursor-pointer">
+        <input type="checkbox" class="check-confirm w-6 h-6 shrink-0 accent-green-600" onchange="checkAllConfirmed()">
+        <span class="text-base text-gray-800">${text}</span>
       </label>
     `;
 
     container.innerHTML = `
-      <div class="w-full max-w-lg mx-auto px-4 pt-4 pb-32 space-y-3 animate-fade-in">
-        <div class="text-center pt-2 pb-1">
-          <div class="text-lg text-gray-900 font-normal">ตรวจสอบคำสั่งซื้อ</div>
-          <div class="text-sm text-gray-500">โปรดตรวจสอบข้อมูลก่อนยืนยัน</div>
+      <div class="w-full max-w-lg mx-auto px-3 pt-3 pb-40 space-y-3 animate-fade-in">
+        <div class="text-center">
+          <div class="text-xl text-gray-900 font-normal">ตรวจสอบคำสั่งซื้อ</div>
+          <div class="text-base text-gray-600">โปรดตรวจสอบข้อมูลก่อนยืนยัน</div>
         </div>
 
         <section class="bg-white rounded-3xl shadow-float p-4">
           ${infoRow("store", "ชื่อร้าน", esc(customer))}
           ${infoRow("wallet", "วิธีชำระเงิน", esc(payMethod))}
-          ${infoRow("truck", "วันที่จัดส่ง", `${Utils.formatThaiDate(deliveryDate)}<span class="text-xs text-gray-400"> · ${deliveryDayText}</span>`)}
+          <div class="mt-2 flex items-center gap-3 rounded-2xl bg-green-50 p-3">
+            <div class="w-10 h-10 shrink-0 rounded-full bg-green-600 text-white flex items-center justify-center">
+              ${UI.icon("truck", "w-5 h-5")}
+            </div>
+            <div class="leading-snug min-w-0">
+              <div class="text-sm text-green-800">วันที่จัดส่ง · ${deliveryDayText}</div>
+              <div class="text-lg text-green-900 font-medium">${Utils.formatThaiDate(deliveryDate)}</div>
+            </div>
+          </div>
         </section>
 
         <section class="bg-white rounded-3xl shadow-float p-4">
           ${UI.sectionLabel("leaf", "รายการผัก")}
           <div class="divide-y divide-stone-100">
             ${summary.map((item) => `
-              <div class="flex justify-between gap-4 py-2">
+              <div class="flex justify-between gap-4 py-2.5">
                 <div class="min-w-0">
-                  <div class="text-gray-900">${esc(item.nameTh)}</div>
-                  <div class="text-xs text-gray-400 tabular-nums">${item.amount.toFixed(2)} กก. × ${money(item.price)}</div>
+                  <div class="text-lg text-gray-900">${esc(item.nameTh)}</div>
+                  <div class="text-sm text-gray-600 tabular-nums">${item.amount.toFixed(2)} กก. × ${money(item.price)}</div>
                 </div>
-                <div class="text-gray-900 tabular-nums">${money(item.subtotal)}</div>
+                <div class="text-lg text-gray-900 font-medium tabular-nums">${money(item.subtotal)}</div>
               </div>
             `).join('')}
           </div>
-          <div class="flex justify-between items-baseline mt-3 pt-3 border-t border-stone-100">
-            <span class="text-gray-500 text-sm">รวม ${totalAmount.toFixed(2)} กก.</span>
-            <span class="text-xl text-gray-900 font-medium tabular-nums">${money(totalPrice)} บ.</span>
+          <div class="flex justify-between items-baseline mt-2 pt-3 border-t border-stone-200">
+            <span class="text-base text-gray-700">รวม ${totalAmount.toFixed(2)} กก.</span>
+            <span class="text-2xl text-green-700 font-medium tabular-nums">${money(totalPrice)} บ.</span>
           </div>
         </section>
 
@@ -1017,20 +1043,20 @@ const PageRenderer = {
           ${checkRow(`ชื่อร้านถูกต้อง (${esc(customer)})`)}
           ${checkRow(`วันที่จัดส่งถูกต้อง (${deliveryDayText})`)}
           ${checkRow(`รายการผักและยอดรวมถูกต้อง (${totalAmount.toFixed(2)} กก. / ${money(totalPrice)} บ.)`)}
-          <div class="flex items-center gap-1.5 px-1 pt-1 text-xs text-gray-400">
-            ${UI.icon("circle-alert", "w-3.5 h-3.5")} ต้องติ๊กครบทุกรายการจึงจะยืนยันการสั่งซื้อได้
+          <div class="flex items-center gap-1.5 px-1 pt-1 text-sm text-gray-600">
+            ${UI.icon("circle-alert", "w-4 h-4 shrink-0")} ต้องติ๊กครบทุกรายการจึงจะยืนยันการสั่งซื้อได้
           </div>
         </section>
       </div>
 
-      <div class="fixed inset-x-0 bottom-0 px-4 pb-5 pt-2 z-40">
+      <div class="${UI.bottomBarClass}">
         <div class="max-w-lg mx-auto flex gap-3">
           <button onclick="PageRenderer.renderForm()"
-                  class="flex items-center justify-center gap-2 rounded-full bg-white text-gray-700 shadow-float-lg px-5 py-3.5">
-            ${UI.icon("arrow-left", "w-4 h-4")} แก้ไข
+                  class="flex items-center justify-center gap-2 rounded-full bg-white text-gray-800 text-base shadow-float-lg px-5 py-4">
+            ${UI.icon("arrow-left", "w-5 h-5")} แก้ไข
           </button>
           <button id="confirm-button" onclick="OrderManager.submitOrder()" disabled
-                  class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white shadow-float-lg px-5 py-3.5 opacity-50 cursor-not-allowed">
+                  class="flex-1 flex items-center justify-center gap-2 rounded-full bg-green-600 text-white text-base shadow-float-lg px-5 py-4 opacity-50 cursor-not-allowed">
             ${UI.icon("check", "w-5 h-5")} ยืนยันการสั่งซื้อ
           </button>
         </div>
@@ -1143,10 +1169,16 @@ function updateDeliveryDate() {
 
   const closed = Utils.isFarmClosed(date);
   formattedEl.innerHTML = !closed
-    ? `<span class="inline-flex items-center gap-1.5">${UI.icon("truck", "w-4 h-4")} ${dateTxt} (${Utils.formatThaiDate(date)})</span>`
+    ? `<div class="flex items-center gap-2 rounded-2xl bg-green-50 px-3 py-2 text-green-800">
+         ${UI.icon("truck", "w-5 h-5 shrink-0")}
+         <span class="text-base"><span class="font-medium">${dateTxt}</span> · ${Utils.formatThaiDate(date)}</span>
+       </div>`
     : "";
   warningEl.innerHTML = closed
-    ? `<span class="inline-flex items-center gap-1.5">${UI.icon("circle-alert", "w-4 h-4")} วันหยุดฟาร์ม กรุณาเลือกวันอื่น</span>`
+    ? `<div class="flex items-center gap-2 rounded-2xl bg-red-50 px-3 py-2 text-red-700">
+         ${UI.icon("circle-alert", "w-5 h-5 shrink-0")}
+         <span class="text-base font-medium">วันหยุดฟาร์ม กรุณาเลือกวันอื่น</span>
+       </div>`
     : "";
   UI.renderIcons();
   OrderManager.checkEnableConfirmButton();
